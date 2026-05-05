@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>X Analytics Dashboard</title>
+<link rel="stylesheet" href="styles.css" />
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="logo">
+      <svg viewBox="0 0 24 24" aria-hidden="true" class="x-logo">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+      <span>X Analytics</span>
+    </div>
+    <nav>
+      <a href="#" class="nav-item active" data-view="overview">
+        <span class="icon">📊</span> Overview
+      </a>
+      <a href="#" class="nav-item" data-view="tweets">
+        <span class="icon">📝</span> Posts
+      </a>
+      <a href="#" class="nav-item" data-view="audience">
+        <span class="icon">👥</span> Audience
+      </a>
+      <a href="#" class="nav-item" data-view="engagement">
+        <span class="icon">💬</span> Engagement
+      </a>
+      <a href="#" class="nav-item" data-view="reach">
+        <span class="icon">🌍</span> Reach
+      </a>
+      <a href="#" class="nav-item" data-view="settings">
+        <span class="icon">⚙️</span> Settings
+      </a>
+    </nav>
+    <div class="account-card">
+      <img src="https://i.pravatar.cc/40?img=12" alt="avatar" />
+      <div>
+        <div class="acct-name">@your_handle</div>
+        <div class="acct-meta">Pro plan</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main -->
+  <main class="main">
+    <!-- Top bar -->
+    <header class="topbar">
+      <div class="search">
+        <span class="search-icon">🔍</span>
+        <input type="text" placeholder="Search posts, hashtags, mentions..." />
+      </div>
+      <div class="topbar-right">
+        <select id="rangeSelect" class="range-select">
+          <option value="7">Last 7 days</option>
+          <option value="28" selected>Last 28 days</option>
+          <option value="90">Last 90 days</option>
+          <option value="365">Last 12 months</option>
+        </select>
+        <button class="btn-primary" id="refreshBtn">
+          <span>↻</span> Refresh
+        </button>
+      </div>
+    </header>
+
+    <!-- Page header -->
+    <section class="page-header">
+      <div>
+        <h1>Overview</h1>
+        <p class="muted">Performance summary for your X account.</p>
+      </div>
+      <div class="header-actions">
+        <button class="btn-ghost">⤓ Export CSV</button>
+        <button class="btn-ghost">⎙ Share</button>
+      </div>
+    </section>
+
+    <!-- KPI cards -->
+    <section class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Impressions</div>
+        <div class="kpi-value" id="kpiImpressions">—</div>
+        <div class="kpi-change up" id="kpiImpressionsChange">▲ 0%</div>
+        <canvas class="spark" id="sparkImpressions"></canvas>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Engagements</div>
+        <div class="kpi-value" id="kpiEngagements">—</div>
+        <div class="kpi-change up" id="kpiEngagementsChange">▲ 0%</div>
+        <canvas class="spark" id="sparkEngagements"></canvas>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Profile Visits</div>
+        <div class="kpi-value" id="kpiVisits">—</div>
+        <div class="kpi-change up" id="kpiVisitsChange">▲ 0%</div>
+        <canvas class="spark" id="sparkVisits"></canvas>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">New Followers</div>
+        <div class="kpi-value" id="kpiFollowers">—</div>
+        <div class="kpi-change up" id="kpiFollowersChange">▲ 0%</div>
+        <canvas class="spark" id="sparkFollowers"></canvas>
+      </div>
+    </section>
+
+    <!-- Main chart + side panel -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <h3>Performance over time</h3>
+            <p class="muted small">Impressions and engagements per day</p>
+          </div>
+          <div class="legend">
+            <span class="dot blue"></span> Impressions
+            <span class="dot purple"></span> Engagements
+          </div>
+        </div>
+        <canvas id="mainChart" height="120"></canvas>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Engagement breakdown</h3>
+        </div>
+        <canvas id="donutChart" height="160"></canvas>
+        <ul class="legend-list" id="donutLegend"></ul>
+      </div>
+    </section>
+
+    <!-- Top posts + Audience -->
+    <section class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <h3>Top performing posts</h3>
+          <a href="#" class="link">View all →</a>
+        </div>
+        <table class="post-table">
+          <thead>
+            <tr>
+              <th>Post</th>
+              <th>Impr.</th>
+              <th>Eng.</th>
+              <th>ER</th>
+            </tr>
+          </thead>
+          <tbody id="topPostsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>Audience growth</h3>
+          <p class="muted small">Followers over selected range</p>
+        </div>
+        <canvas id="audienceChart" height="180"></canvas>
+      </div>
+    </section>
+
+    <!-- Demographics -->
+    <section class="grid-3">
+      <div class="card">
+        <div class="card-head"><h3>Top countries</h3></div>
+        <ul class="bar-list" id="countryList"></ul>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Age groups</h3></div>
+        <canvas id="ageChart" height="180"></canvas>
+      </div>
+      <div class="card">
+        <div class="card-head"><h3>Devices</h3></div>
+        <canvas id="deviceChart" height="180"></canvas>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <div>X Analytics Dashboard · Demo Build</div>
+      <div class="muted small">Replace <code>generateTimeSeriesData()</code> with X API v2 calls to go live.</div>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
