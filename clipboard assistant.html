@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clipboard Helper</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            background-color: #f8fafc;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .status-msg {
+            transition: opacity 0.3s ease;
+        }
+        /* Custom scrollbar for large text blocks */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+    <div class="max-w-3xl mx-auto bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+        <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+            <div>
+                <h1 class="text-xl font-bold text-slate-800">Clipboard Manager</h1>
+                <p class="text-sm text-slate-500">Handle large text blocks without clipboard limits.</p>
+            </div>
+            <div id="charCount" class="text-xs font-mono text-slate-400 bg-white px-2 py-1 rounded border">
+                0 chars
+            </div>
+        </div>
+
+        <div class="p-6">
+            <textarea 
+                id="textArea" 
+                class="w-full h-96 p-4 text-slate-700 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none resize-none font-mono text-sm mb-4"
+                placeholder="Paste your long text here..."
+            ></textarea>
+
+            <div class="flex flex-col sm:flex-row gap-3">
+                <button 
+                    onclick="copyToClipboard()" 
+                    class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                    Copy All Text
+                </button>
+                
+                <button 
+                    onclick="downloadAsFile()" 
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-2"
+                >
+                    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                    Download as .txt
+                </button>
+                
+                <button 
+                    onclick="clearText()" 
+                    class="bg-slate-100 hover:bg-slate-200 text-slate-600 font-semibold py-3 px-6 rounded-xl transition-all active:scale-95"
+                >
+                    Clear
+                </button>
+            </div>
+
+            <div id="status" class="mt-4 text-center text-sm font-medium text-emerald-600 opacity-0 status-msg">
+                Success!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const textArea = document.getElementById('textArea');
+        const charCount = document.getElementById('charCount');
+        const status = document.getElementById('status');
+
+        textArea.addEventListener('input', () => {
+            charCount.textContent = `${textArea.value.length.toLocaleString()} chars`;
+        });
+
+        function showStatus(msg, isError = false) {
+            status.textContent = msg;
+            status.className = `mt-4 text-center text-sm font-medium ${isError ? 'text-red-600' : 'text-emerald-600'} opacity-100 status-msg`;
+            setTimeout(() => {
+                status.classList.add('opacity-0');
+            }, 2000);
+        }
+
+        function copyToClipboard() {
+            if (!textArea.value) {
+                showStatus("Nothing to copy!", true);
+                return;
+            }
+            textArea.select();
+            textArea.setSelectionRange(0, 99999);
+            try {
+                const successful = document.execCommand('copy');
+                if (successful) showStatus("Copied to clipboard!");
+                else showStatus("Failed to copy.", true);
+            } catch (err) {
+                showStatus("Error: Unable to copy.", true);
+            }
+            window.getSelection().removeAllRanges();
+        }
+
+        function downloadAsFile() {
+            if (!textArea.value) {
+                showStatus("Nothing to download!", true);
+                return;
+            }
+            const blob = new Blob([textArea.value], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = 'pasted_content.txt';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            showStatus("Downloading file...");
+        }
+
+        function clearText() {
+            if (textArea.value && confirm("Clear all text?")) {
+                textArea.value = '';
+                charCount.textContent = '0 chars';
+            }
+        }
+    </script>
+</body>
+</html>
+
+```
