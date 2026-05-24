@@ -1,39 +1,278 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>X Analytics Dashboard</title>
-<style>
-/* ===== Theme ===== */
-:root {
-  --bg: #000000;
-  --panel: #16181c;
-  --panel-2: #1d1f23;
-  --border: #2f3336;
-  --text: #e7e9ea;
-  --muted: #71767b;
-  --accent: #1d9bf0;
-  --accent-2: #8b5cf6;
-  --green: #00ba7c;
-  --red: #f4212e;
-  --yellow: #ffd400;
-  --radius: 14px;
-  --shadow: 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.35);
-  --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-}
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackFolio Static Utilities Hub</title>
+  <meta name="description" content="A curated suite of standalone static utilities for developers, degens, and creators." />
+  
+  <!-- Tailwind CSS & FontAwesome Icons -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+    
+    :root {
+      --gold: #FFD700;
+      --gold-dark: #B8860B;
+      --deep-blue: #050814;
+      --card-blue: #0B1126;
+      --border-blue: rgba(255, 215, 0, 0.1);
+      --cyan: #00D2FF;
+    }
 
-* { box-sizing: border-box; }
-html, body {
-  margin: 0;
-  padding: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: var(--font);
-  font-size: 14px;
-  -webkit-font-smoothing: antialiased;
-}
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--deep-blue);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(0, 210, 255, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, #111A36 0%, var(--deep-blue) 100%);
+      color: #F8FAFC;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-x: hidden;
+    }
 
+    .glass {
+      background: rgba(11, 17, 38, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-blue);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .glass:hover {
+      background: rgba(11, 17, 38, 0.85);
+      border-color: rgba(255, 215, 0, 0.25);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 35px rgba(255, 215, 0, 0.08);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%);
+      color: #050814;
+      font-weight: 800;
+      transition: all 0.25s ease-in-out;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    }
+
+    .btn-gold:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.35);
+      filter: brightness(1.05);
+    }
+
+    /* Floating particles background */
+    .space-dust {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+    .dust-particle {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: floatUp 20s linear infinite;
+    }
+
+    @keyframes floatUp {
+      0% { transform: translateY(105vh) scale(0.5); opacity: 0; }
+      50% { opacity: 0.15; }
+      100% { transform: translateY(-5vh) scale(1.2); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="relative">
+
+  <!-- Floating space particles -->
+  <div class="space-dust">
+    <div class="dust-particle" style="width: 2px; height: 2px; left: 15%; animation-delay: 0s; animation-duration: 25s;"></div>
+    <div class="dust-particle" style="width: 3px; height: 3px; left: 45%; animation-delay: 4s; animation-duration: 18s;"></div>
+    <div class="dust-particle" style="width: 2px; height: 2px; left: 75%; animation-delay: 8s; animation-duration: 22s;"></div>
+    <div class="dust-particle" style="width: 4px; height: 4px; left: 85%; animation-delay: 2s; animation-duration: 15s;"></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="p-5 glass rounded-none border-b border-white/5 flex justify-between items-center z-50 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/15">
+        SF
+      </div>
+      <div>
+        <h1 class="text-xs font-black uppercase tracking-[0.2em] text-white/40 leading-none">awesomejoses11-code</h1>
+        <p class="text-sm font-black text-[#FFD700] mt-1">StackFolio Data</p>
+      </div>
+    </div>
+
+    <!-- Repository tag -->
+    <div class="flex items-center gap-3">
+      <button onclick="copyRepoString()" class="hidden sm:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-mono text-slate-300 transition-all">
+        <i class="fa-brands fa-github text-[#FFD700]"></i>
+        <span>awesomejoses11-code/stackfolio-data</span>
+      </button>
+      <div class="text-xs font-mono text-slate-400 bg-emerald-500/10 border border-emerald-500/20 px-3.5 py-1.5 rounded-xl flex items-center gap-2">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync Active
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Main Introduction Area -->
+  <section class="max-w-4xl w-full mx-auto text-center px-6 pt-16 pb-8 space-y-6">
+    <div class="inline-flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/15 px-4 py-2 rounded-full text-xs font-bold text-yellow-500">
+      <i class="fa-solid fa-wand-magic-sparkles animate-pulse"></i> Standalone Developer Utilities Suite
+    </div>
+    
+    <h2 class="text-4xl sm:text-6xl font-black uppercase tracking-tight leading-none">
+      Simple tools that <span class="text-[#00D2FF]">run instantly</span>.
+    </h2>
+    
+    <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+      A curated sandbox workspace of pure static browser utilities. No registration, zero backend requirements, lightweight, fast, and highly reliable.
+    </p>
+  </section>
+
+  <!-- Main Active Utility Cards Grid Layout -->
+  <main class="max-w-5xl w-full mx-auto px-6 pb-16 grid grid-cols-1 md:grid-cols-3 gap-6">
+    
+    <!-- Card 1: Live HTML Previewer -->
+    <a href="preview.html" class="glass p-6 rounded-[2rem] flex flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-yellow-500/10 border border-yellow-500/20 flex items-center justify-center text-[#FFD700] text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-laptop-code"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            Live HTML Previewer
+            <span class="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-md font-black">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Real-time sandboxed environment for testing HTML, CSS, and JS snippets with unified responsive layouts, customizable output downloads, and built-in console tracking.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">preview.html</span>
+        <span class="text-xs font-bold text-yellow-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Launch Sandbox <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Card 2: Clipboard & Document Studio -->
+    <a href="clipboard assistant.html" class="glass p-6 rounded-[2rem] flex flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center text-[#00D2FF] text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-paste"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            Clipboard Studio
+            <span class="text-[10px] bg-cyan-500/10 text-[#00D2FF] border border-cyan-500/20 px-2 py-0.5 rounded-md font-black">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Convert large content blobs, run instant case/whitespace updates, perform multi-line transformations, and compile plain payload texts directly into high-fidelity PDF and Word files.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">clipboard assistant.html</span>
+        <span class="text-xs font-bold text-[#00D2FF] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Open Studio <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Card 3: QR Code Generator -->
+    <a href="qr-code-generator.html" class="glass p-6 rounded-[2rem] flex flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            QR Generator Studio
+            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-black">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Build responsive vector QR codes with customized matrix block shapes, color schemes, and upload transparent center logos matching custom business models.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">qr-code-generator.html</span>
+        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Open Generator <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+  </main>
+
+  <!-- Non-Intrusive Custom Notification Toast -->
+  <div id="toast-card" class="fixed bottom-6 right-6 bg-[#0B1126] border border-yellow-500/20 px-5 py-3.5 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 text-slate-300 text-xs shadow-2xl z-50">
+    <div class="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+      <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    </div>
+    <span id="toast-text">Configuration updated</span>
+  </div>
+
+  <!-- Bottom Platform Footer -->
+  <footer class="p-8 text-center text-[10px] text-slate-600 uppercase tracking-widest font-bold border-t border-white/5 shrink-0">
+    © 2026 awesomejoses11-code • StackFolio Portfolios Data
+  </footer>
+
+  <script>
+    function copyRepoString() {
+      const text = "awesomejoses11-code/stackfolio-data";
+      
+      const tempInput = document.createElement("textarea");
+      tempInput.value = text;
+      document.body.appendChild(tempInput);
+      tempInput.select();
+      
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          showToast('Repository link copied!');
+        } else {
+          showToast('Failed to copy', 'triangle-exclamation');
+        }
+      } catch(e) {
+        showToast('Error copying link', 'triangle-exclamation');
+      }
+      
+      document.body.removeChild(tempInput);
+    }
+
+    function showToast(text, iconClass = 'circle-check') {
+      const box = document.getElementById('toast-card');
+      const icon = document.getElementById('toast-icon');
+      const textSpan = document.getElementById('toast-text');
+
+      icon.className = `fa-solid fa-${iconClass}`;
+      textSpan.innerText = text;
+
+      box.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      window.clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        box.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
+
+```
 a { color: inherit; text-decoration: none; }
 button { font-family: inherit; cursor: pointer; }
 
