@@ -12,6 +12,9 @@
   <!-- PDF & Document Compilation Engines -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
+  <!-- Docx Generator Library -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.js"></script>
+
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
     
@@ -329,6 +332,7 @@
     const readTime = document.getElementById('readTime');
     const exportFilenameInput = document.getElementById('exportFilename');
     const confirmModal = document.getElementById('confirmModal');
+    const msgToast = document.getElementById('msg-toast');
 
     // Live update parser on keyboard feedback
     textArea.addEventListener('input', runStatisticsCalculation);
@@ -361,15 +365,15 @@
           if (text) {
             textArea.value = text;
             runStatisticsCalculation();
-            showToast('Text pasted from clipboard!', 'paste');
+            showToast('Text pasted from clipboard!', 'check');
           } else {
-            showToast('Clipboard data is empty!', 'triangle-exclamation');
+            showToast('Clipboard data is empty!', 'exclamation');
           }
         }).catch(err => {
-          showToast('Clipboard access denied. Paste manually inside workspace.', 'triangle-exclamation');
+          showToast('Clipboard access denied. Paste manually inside workspace.', 'exclamation');
         });
       } else {
-        showToast('Browser does not support direct clipboard reads. Paste manually.', 'triangle-exclamation');
+        showToast('Browser does not support direct clipboard reads. Paste manually.', 'exclamation');
       }
     }
 
@@ -377,7 +381,7 @@
     function copyToClipboard() {
       const val = textArea.value;
       if (!val) {
-        showToast("Canvas is empty!", 'triangle-exclamation');
+        showToast("Canvas is empty!", 'exclamation');
         return;
       }
       
@@ -389,9 +393,9 @@
       try {
         const successful = document.execCommand('copy');
         if (successful) showToast("Workspace content copied!");
-        else showToast("Failed to copy.", 'triangle-exclamation');
+        else showToast("Failed to copy.", 'exclamation');
       } catch (err) {
-        showToast("Error: Unable to copy content.", 'triangle-exclamation');
+        showToast("Error: Unable to copy content.", 'exclamation');
       }
       document.body.removeChild(tempInput);
     }
@@ -400,13 +404,229 @@
     function modifyText(type) {
       const text = textArea.value;
       if (!text) {
-        showToast('Input text first!', 'triangle-exclamation');
+        showToast('Input text first!', 'exclamation');
         return;
       }
 
+      let result = text;
+
       if (type === 'upper') {
-        textArea.value = text.toUpperCase();
+        result = text.toUpperCase();
       } else if (type === 'lower') {
-        textArea.value = text.toLowerCase();
+        result = text.toLowerCase();
       } else if (type === 'title') {
-        textArea.value = text.replace(/\w\S*/g, (
+        result = text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.substr(1).toLowerCase());
+      } else if (type === 'spaces') {
+        result = text.trim().replace(/\s+/g, ' ');
+      } else if (type === 'b64encode') {
+        try {
+          result = btoa(unescape(encodeURIComponent(text)));
+          showToast('Text encoded to Base64!', 'check');
+        } catch (e) {
+          showToast('Base64 encoding failed!', 'exclamation');
+          return;
+        }
+      } else if (type === 'b64decode') {
+        try {
+          result = decodeURIComponent(escape(atob(text)));
+          showToast('Text decoded from Base64!', 'check');
+        } catch (e) {
+          showToast('Base64 decoding failed! Invalid format.', 'exclamation');
+          return;
+        }
+      }
+
+      textArea.value = result;
+      runStatisticsCalculation();
+      
+      if (type !== 'b64encode' && type !== 'b64decode') {
+        showToast(`Text converted to ${type}!`, 'check');
+      }
+    }
+
+    // Find and Replace function
+    function executeFindReplace() {
+      const findInput = document.getElementById('findInput');
+      const replaceInput = document.getElementById('replaceInput');
+      const findText = findInput.value;
+      const replaceText = replaceInput.value;
+
+      if (!findText) {
+        showToast('Enter text to find!', 'exclamation');
+        return;
+      }
+
+      const originalLength = textArea.value.length;
+      textArea.value = textArea.value.replaceAll(findText, replaceText);
+      const newLength = textArea.value.length;
+      const replacements = Math.abs(newLength - originalLength) / (findText.length - replaceText.length);
+      
+      showToast(`Replaced ${Math.round(replacements)} occurrences!`, 'check');
+      runStatisticsCalculation();
+    }
+
+    // Export to TXT
+    function exportToTXT() {
+      const filename = (exportFilenameInput.value || 'stackfolio_export') + '.txt';
+      const text = textArea.value;
+      
+      if (!text) {
+        showToast('Canvas is empty!', 'exclamation');
+        return;
+      }
+
+      const blob = new Blob([text], { type: 'text/plain' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(url);
+      
+      showToast(`${filename} downloaded!`, 'check');
+    }
+
+    // Export to PDF
+    function exportToPDF() {
+      const filename = (exportFilenameInput.value || 'stackfolio_export') + '.pdf';
+      const text = textArea.value;
+      
+      if (!text) {
+        showToast('Canvas is empty!', 'exclamation');
+        return;
+      }
+
+      try {
+        if (typeof html2pdf === 'undefined') {
+          showToast('PDF library not loaded!', 'exclamation');
+          return;
+        }
+
+        const element = document.getElementById('hidden-pdf-render');
+        // Escape HTML properly
+        const safText = text
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#039;');
+        
+        element.innerHTML = `<div style="padding: 20px; font-family: 'Courier New', monospace; white-space: pre-wrap; word-wrap: break-word; font-size: 12px; line-height: 1.6;">${safText}</div>`;
+        
+        const opt = {
+          margin: [10, 10, 10, 10],
+          filename: filename,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true },
+          jsPDF: { orientation: 'portrait', unit: 'mm', format: 'a4' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+          showToast(`${filename} generated!`, 'check');
+        }).catch(err => {
+          showToast('PDF generation failed!', 'exclamation');
+          console.error('PDF error:', err);
+        });
+      } catch (err) {
+        showToast('PDF export error!', 'exclamation');
+        console.error(err);
+      }
+    }
+
+    // Export to DOCX
+    function exportToDOCX() {
+      const filename = (exportFilenameInput.value || 'stackfolio_export') + '.docx';
+      const text = textArea.value;
+      
+      if (!text) {
+        showToast('Canvas is empty!', 'exclamation');
+        return;
+      }
+
+      try {
+        // Check if docx library is loaded
+        if (typeof docx === 'undefined' || !docx.Document) {
+          showToast('DOCX library not loaded. Falling back to TXT.', 'exclamation');
+          exportToTXT();
+          return;
+        }
+
+        const doc = new docx.Document({
+          sections: [{
+            properties: {},
+            children: text.split('\n').map((line, idx) => 
+              new docx.Paragraph({
+                text: line || ' ',
+                spacing: { line: 240, lineRule: 'auto' },
+                style: 'Normal'
+              })
+            )
+          }]
+        });
+
+        if (docx.Packer && docx.Packer.toBlob) {
+          docx.Packer.toBlob(doc).then(blob => {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+            showToast(`${filename} generated!`, 'check');
+          }).catch(err => {
+            showToast('DOCX packing failed. Falling back to TXT.', 'exclamation');
+            console.error('Packer error:', err);
+            exportToTXT();
+          });
+        } else {
+          throw new Error('Packer not available');
+        }
+      } catch (err) {
+        showToast('DOCX generation failed. Falling back to TXT.', 'exclamation');
+        console.error('DOCX export error:', err);
+        exportToTXT();
+      }
+    }
+
+    // Modal Functions
+    function openConfirmModal() {
+      confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+      confirmModal.classList.add('opacity-100');
+    }
+
+    function closeConfirmModal() {
+      confirmModal.classList.add('opacity-0', 'pointer-events-none');
+      confirmModal.classList.remove('opacity-100');
+    }
+
+    function executeClearCanvas() {
+      textArea.value = '';
+      runStatisticsCalculation();
+      closeConfirmModal();
+      showToast('Canvas cleared!', 'check');
+    }
+
+    // Toast notification system
+    function showToast(message, icon = 'check') {
+      const toastText = document.getElementById('toast-text');
+      const toastIcon = document.getElementById('toast-icon');
+      
+      toastText.innerText = message;
+      toastIcon.className = `fa-solid fa-circle-${icon}`;
+      
+      msgToast.classList.remove('translate-y-20', 'opacity-0');
+      msgToast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        msgToast.classList.add('translate-y-20', 'opacity-0');
+        msgToast.classList.remove('translate-y-0', 'opacity-100');
+      }, 3000);
+    }
+
+    // Initialize
+    runStatisticsCalculation();
+  </script>
+</body>
+</html>
