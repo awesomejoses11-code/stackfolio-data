@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackFolio Live HTML Previewer</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+    
+    :root {
+      --gold: #FFD700;
+      --deep-blue: #050814;
+      --panel-blue: #0B1126;
+      --border-blue: rgba(255, 215, 0, 0.1);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--deep-blue);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(0, 210, 255, 0.04) 0%, transparent 40%);
+      color: #F8FAFC;
+    }
+
+    /* Editor styling mimicking IDEs */
+    .editor-container {
+      font-family: 'Fira Code', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    #code-editor {
+      resize: none;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* Scrollbars customization */
+    #line-numbers::-webkit-scrollbar,
+    #console-logs::-webkit-scrollbar,
+    #code-editor::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    #code-editor::-webkit-scrollbar-track, #console-logs::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #code-editor::-webkit-scrollbar-thumb, #console-logs::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+    }
+
+    .glass {
+      background: rgba(11, 17, 38, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-blue);
+    }
+
+    /* Custom slider switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 22px;
+    }
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #1E293B;
+      transition: .3s;
+      border-radius: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--gold);
+    }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+      background-color: #050814;
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col justify-between overflow-hidden">
+
+  <header class="p-4 glass border-b border-white/5 flex flex-wrap justify-between items-center gap-4 z-40 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/10">
+        SF
+      </div>
+      <div>
+        <h1 class="text-xs font-black uppercase tracking-[0.2em] text-white/40 leading-none">StackFolio Workspace</h1>
+        <p class="text-sm font-bold text-[#FFD700] mt-1">Live HTML Previewer</p>
+      </div>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+      <div class="flex items-center gap-2.5 bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/5">
+        <span class="text-[10px] sm:text-xs text-slate-400 font-bold tracking-wide uppercase">Execute JS</span>
+        <label class="switch">
+          <input type="checkbox" id="js-toggle" checked onchange="toggleJsExecution()" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="injectPreset('counter')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-square-plus mr-1 text-yellow-500"></i> Counter
+        </button>
+        <button onclick="injectPreset('tailwind')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1 text-[#00D2FF]"></i> Tailwind
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="bg-[#070b1d] border-b border-white/5 px-4 py-2 flex items-center justify-between shrink-0">
+    <div class="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
+      <button onclick="setWorkspaceView('editor')" id="view-tab-editor" class="text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10">
+        <i class="fa-solid fa-code"></i> Code Editor
+      </button>
+      <button onclick="setWorkspaceView('preview')" id="view-tab-preview" class="text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-eye"></i> Live Preview
+      </button>
+      <button onclick="setWorkspaceView('split')" id="view-tab-split" class="hidden md:flex text-xs font-bold py-2 px-4 rounded-lg transition-all items-center gap-2 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-columns"></i> Split View
+      </button>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <button onclick="copyCode()" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+        <i class="fa-solid fa-copy text-yellow-500"></i> Copy Source
+      </button>
+      <button onclick="openDownloadModal()" class="text-xs text-[#050814] bg-gradient-to-tr from-[#FFD700] to-[#FDB931] hover:brightness-110 px-3.5 py-2 rounded-lg font-black uppercase transition-all flex items-center gap-1.5">
+        <i class="fa-solid fa-download"></i> Download .html
+      </button>
+    </div>
+  </div>
+
+  <main class="flex-1 p-4 min-h-0 flex flex-col gap-4 relative">
+    
+    <div id="workspace-wrapper" class="flex-1 grid grid-cols-1 gap-4 min-h-0">
+      
+      <div id="panel-editor" class="flex flex-col h-full bg-[#080d20] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 py-2.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-align-left text-yellow-500"></i> HTML/CSS/JS Source Code
+          </span>
+          <button onclick="clearEditor()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold bg-red-500/10 px-2 py-1 rounded-md">
+            <i class="fa-solid fa-eraser"></i> Reset Code
+          </button>
+        </div>
+
+        <div class="flex-1 flex editor-container overflow-hidden bg-[#040714] text-slate-300">
+          <div id="line-numbers" class="w-12 py-4 select-none text-right pr-3 text-slate-600 font-mono bg-black/20 border-r border-white/5 overflow-hidden">
+            <div>1</div>
+          </div>
+          <textarea id="code-editor" autocomplete="off" autofocus spellcheck="false" 
+            class="flex-1 py-4 px-3 bg-transparent outline-none border-none text-slate-200 resize-none overflow-y-auto leading-relaxed"
+            placeholder="Write your HTML, CSS, and JS here..."></textarea>
+        </div>
+      </div>
+
+      <div id="panel-preview" class="hidden flex flex-col h-full bg-[#080d20] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 py-2.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Sandboxed Viewport
+          </span>
+          <span class="text-[10px] text-slate-500 font-mono">Isolated Frame Container</span>
+        </div>
+
+        <div class="flex-1 bg-white relative">
+          <iframe id="preview-frame" class="w-full h-full border-none bg-white"></iframe>
+        </div>
+      </div>
+
+    </div>
+
+    <div id="panel-console" class="bg-[#080d20] border border-white/5 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 h-10 shrink-0">
+      <div onclick="toggleConsole()" class="px-4 py-2 bg-[#0a1129] border-b border-white/5 flex justify-between items-center cursor-pointer select-none">
+        <div class="flex items-center gap-3">
+          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-terminal text-cyan-400"></i> Dev Console
+          </span>
+          <span id="console-badge" class="bg-slate-800 text-slate-300 text-[10px] px-1.5 py-0.5 rounded font-bold">0 logs</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <button onclick="clearConsole(event)" class="text-[10px] text-slate-400 hover:text-white transition-colors bg-white/5 px-2 py-0.5 rounded border border-white/5">Clear</button>
+          <i id="console-arrow" class="fa-solid fa-chevron-up text-slate-500 text-xs transform transition-transform"></i>
+        </div>
+      </div>
+      <div id="console-logs" class="flex-1 bg-[#040714] p-3 overflow-y-auto font-mono text-xs space-y-1.5 select-text"></div>
+    </div>
+
+  </main>
+
+  <div id="download-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm opacity-0 pointer-events-none transition-all duration-200">
+    <div class="w-full max-w-md bg-[#0b1126] border border-yellow-500/20 rounded-2xl shadow-2xl p-6 transform scale-95 transition-transform">
+      <div class="flex justify-between items-center mb-4">
+        <h3 class="text-sm font-black uppercase tracking-wider text-yellow-500">Custom Download Parameters</h3>
+        <button onclick="closeDownloadModal()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      
+      <div class="space-y-4 text-slate-300 text-xs">
+        <div>
+          <label class="block mb-1.5 font-bold text-slate-400">Document Title (&lt;title&gt;)</label>
+          <input type="text" id="dl-title" value="My StackFolio Project" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-yellow-500/40" />
+        </div>
+        <div>
+          <label class="block mb-1.5 font-bold text-slate-400">Favicon Shortcut URL (Optional)</label>
+          <input type="text" id="dl-favicon" placeholder="https://example.com/icon.png" class="w-full bg-black/40 border border-white/10 rounded-xl px-3 py-2 text-white outline-none focus:border-yellow-500/40" />
+        </div>
+        <div class="bg-black/30 p-3 rounded-xl border border-white/5 flex items-center justify-between">
+          <div>
+            <p class="font-bold text-slate-300">Bundle Tailwind CSS</p>
+            <p class="text-[10px] text-slate-500">Inject dynamic Tailwind core play CDN code script</p>
+          </div>
+          <label class="switch">
+            <input type="checkbox" id="dl-tailwind" checked />
+            <span class="slider"></span>
+          </label>
+        </div>
+      </div>
+
+      <div class="mt-6 flex justify-end gap-2">
+        <button onclick="closeDownloadModal()" class="bg-white/5 hover:bg-white/10 px-4 py-2 rounded-xl font-bold text-slate-300 transition-colors text-xs">Cancel</button>
+        <button onclick="executeCustomDownload()" class="bg-gradient-to-tr from-[#FFD700] to-[#FDB931] text-[#050814] px-4 py-2 rounded-xl font-black uppercase transition-all text-xs shadow-lg shadow-yellow-500/10">Export File</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-card" class="fixed bottom-6 right-6 bg-[#0B1126] border border-yellow-500/20 px-5 py-3.5 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 text-slate-300 text-xs shadow-2xl z-50">
+    <div class="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+      <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    </div>
+    <span id="toast-text">Workspace copied!</span>
+  </div>
+
+  <footer class="p-3 text-center border-t border-white/5 shrink-0 text-[10px] text-slate-600 uppercase tracking-widest font-bold">
+    © 2026 StackFolio Playgrounds • Sandbox v2.0
+  </footer>
+
+  <script>
+    const editor = document.getElementById('code-editor');
+    const lineNumbers = document.getElementById('line-numbers');
+    const previewFrame = document.getElementById('preview-frame');
+    const jsToggle = document.getElementById('js-toggle');
+    const workspaceWrapper = document.getElementById('workspace-wrapper');
+    const consoleLogs = document.getElementById('console-logs');
+    const consoleBadge = document.getElementById('console-badge');
+    const panelConsole = document.getElementById('panel-console');
+    
+    let debounceTimer = null;
+    let currentViewMode = 'editor'; 
+    let isConsoleOpen = false;
+    let totalLogsCount = 0;
+
+    // Default starter HTML template
+    const defaultTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+    }
+    button {
+      background: #ffea7a;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>StackFolio Dev Live View 🚀</h2>
+    <p>Check the custom Dev Console right below!</p>
+    <button id="counter-btn">Trigger Log Element</button>
+  </div>
+
+  <script>
+    let count = 0;
+    console.log("Sandbox Frame initiated successfully.");
+
+    document.getElementById('counter-btn').addEventListener('click', () => {
+      count++;
+      document.getElementById('counter-btn').innerText = 'Clicked ' + count + ' times';
+      console.log('Action triggered! Counter clicked value: ' + count);
+      
+      if(count % 5 === 0) {
+        console.error('Milestone warning reached: ' + count);
+      }
+    });
+  <\/script>
+</body>
+</html>`;
+
+    // Tailwind Play Demo Template
+    const tailwindTemplate = `<!DOCTYPE html>
+<html lang="en">
+<body>
+  <div class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-6">
+    <div class="max-w-md w-full bg-slate-800 border border-slate-700/50 p-6 rounded-3xl shadow-2xl space-y-3">
+      <h3 class="font-bold text-lg text-cyan-400">Tailwind Playground</h3>
+      <p class="text-sm text-slate-300">
+        Write modern utility classes right inside the template canvas container!
+      </p>
+    </div>
+  </div>
+  <script>
+    console.log("Tailwind preset injected perfectly.");
+  <\/script>
+</body>
+</html>`;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      editor.value = defaultTemplate;
+      editor.addEventListener('input', handleEditorInput);
+      editor.addEventListener('scroll', syncScroll);
+      
+      updateLineNumbers();
+      triggerPreviewUpdate();
+      
+      // Listen to virtual messages routed out of sandboxed context frame
+      window.addEventListener('message', (e) => {
+        if (e.data && e.data.source === 'stackfolio-frame-console') {
+          appendVirtualLog(e.data.type, e.data.message);
+        }
+      });
+    });
+
+    // Handle Workspace View Management (Tabs Layout Toggle)
+    function setWorkspaceView(mode) {
+      currentViewMode = mode;
+      const tabEditor = document.getElementById('view-tab-editor');
+      const tabPreview = document.getElementById('view-tab-preview');
+      const tabSplit = document.getElementById('view-tab-split');
+      const panelEditor = document.getElementById('panel-editor');
+      const panelPreview = document.getElementById('panel-preview');
+
+      [tabEditor, tabPreview, tabSplit].forEach(tab => { if (tab) tab.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white"; });
+
+      if (mode === 'editor') {
+        tabEditor.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+        workspaceWrapper.className = "flex-1 grid grid-cols-1 min-h-0";
+        panelEditor.classList.remove('hidden');
+        panelPreview.classList.add('hidden');
+      } 
+      else if (mode === 'preview') {
+        tabPreview.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+        workspaceWrapper.className = "flex-1 grid grid-cols-1 min-h-0";
+        panelEditor.classList.add('hidden');
+        panelPreview.classList.remove('hidden');
+        triggerPreviewUpdate();
+      } 
+      else if (mode === 'split') {
+        tabSplit.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+        workspaceWrapper.className = "flex-1 grid grid-cols-2 gap-4 min-h-0";
+        panelEditor.classList.remove('hidden');
+        panelPreview.classList.remove('hidden');
+        triggerPreviewUpdate();
+      }
+    }
+
+    // Capture Frame log data entries
+    function appendVirtualLog(type, text) {
+      totalLogsCount++;
+      consoleBadge.innerText = `${totalLogsCount} logs`;
+      
+      const logRow = document.createElement('div');
+      logRow.className = "py-0.5 border-b border-white/5 flex gap-2 items-start";
+      
+      if (type === 'error') {
+        logRow.className += " text-red-400";
+        logRow.innerHTML = `<span>❌</span><span>${text}</span>`;
+      } else if (type === 'warn') {
+        logRow.className += " text-yellow-400";
+        logRow.innerHTML = `<span>⚠️</span><span>${text}</span>`;
+      } else {
+        logRow.className += " text-slate-300";
+        logRow.innerHTML = `<span>›</span><span>${text}</span>`;
+      }
+      
+      consoleLogs.appendChild(logRow);
+      consoleLogs.scrollTop = consoleLogs.scrollHeight;
+      
+      // Auto expand to alert developer on error events if hidden
+      if (type === 'error' && !isConsoleOpen) {
+        toggleConsole();
+      }
+    }
+
+    // Toggle Console Window Collapse
+    function toggleConsole() {
+      isConsoleOpen = !isConsoleOpen;
+      const arrow = document.getElementById('console-arrow');
+      if (isConsoleOpen) {
+        panelConsole.style.height = "160px";
+        arrow.classList.add('rotate-180');
+      } else {
+        panelConsole.style.height = "40px";
+        arrow.classList.remove('rotate-180');
+      }
+    }
+
+    function clearConsole(event) {
+      if (event) event.stopPropagation();
+      consoleLogs.innerHTML = '';
+      totalLogsCount = 0;
+      consoleBadge.innerText = "0 logs";
+    }
+
+    // Debounced Refresh updates
+    function handleEditorInput() {
+      updateLineNumbers();
+      window.clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => { triggerPreviewUpdate(); }, 300);
+    }
+
+    function updateLineNumbers() {
+      const lines = editor.value.spli
+    #code-editor {
+      resize: none;
+      white-space: pre;
+      overflow-x: auto;
+    }
+
+    /* Synchronized scroll heights */
+    #line-numbers::-webkit-scrollbar,
+    #code-editor::-webkit-scrollbar {
+      height: 6px;
+      width: 6px;
+    }
+    #code-editor::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #code-editor::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 99px;
+    }
+
+    .glass {
+      background: rgba(11, 17, 38, 0.8);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-blue);
+    }
+
+    /* Custom slider switch */
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 44px;
+      height: 22px;
+    }
+    .switch input { 
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #1E293B;
+      transition: .3s;
+      border-radius: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 14px;
+      width: 14px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: .3s;
+      border-radius: 50%;
+    }
+    input:checked + .slider {
+      background-color: var(--gold);
+    }
+    input:checked + .slider:before {
+      transform: translateX(22px);
+      background-color: #050814;
+    }
+  </style>
+</head>
+<body class="h-screen flex flex-col justify-between overflow-hidden">
+
+  <!-- Top Navigation -->
+  <header class="p-4 glass border-b border-white/5 flex flex-wrap justify-between items-center gap-4 z-50 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/10">
+        SF
+      </div>
+      <div>
+        <h1 class="text-xs font-black uppercase tracking-[0.2em] text-white/40 leading-none">StackFolio Workspace</h1>
+        <p class="text-sm font-bold text-[#FFD700] mt-1">Live HTML Previewer</p>
+      </div>
+    </div>
+
+    <!-- Toolbar controls -->
+    <div class="flex flex-wrap items-center gap-3 sm:gap-4">
+      <!-- JavaScript Sandbox Safety switch -->
+      <div class="flex items-center gap-2.5 bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/5">
+        <span class="text-[10px] sm:text-xs text-slate-400 font-bold tracking-wide uppercase">Execute JS</span>
+        <label class="switch">
+          <input type="checkbox" id="js-toggle" checked onchange="toggleJsExecution()" />
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="flex items-center gap-2">
+        <button onclick="injectPreset('counter')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-square-plus mr-1 text-yellow-500"></i> Counter
+        </button>
+        <button onclick="injectPreset('tailwind')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1 text-[#00D2FF]"></i> Tailwind
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Workspace Sub-Header Tab Bar -->
+  <div class="bg-[#070b1d] border-b border-white/5 px-4 py-2 flex items-center justify-between shrink-0">
+    <!-- Main Workspace Switcher -->
+    <div class="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
+      <button onclick="setWorkspaceView('editor')" id="view-tab-editor" class="text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10">
+        <i class="fa-solid fa-code"></i> Code Editor
+      </button>
+      <button onclick="setWorkspaceView('preview')" id="view-tab-preview" class="text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-eye"></i> Live Preview
+      </button>
+      <button onclick="setWorkspaceView('split')" id="view-tab-split" class="hidden md:flex text-xs font-bold py-2 px-4 rounded-lg transition-all items-center gap-2 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-columns"></i> Split View
+      </button>
+    </div>
+
+    <!-- Active Action utilities -->
+    <div class="flex items-center gap-2">
+      <button onclick="copyCode()" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold bg-white/5 px-3 py-2 rounded-lg border border-white/5">
+        <i class="fa-solid fa-copy text-yellow-500"></i> Copy Source
+      </button>
+      <button onclick="downloadCode()" class="text-xs text-[#050814] bg-gradient-to-tr from-[#FFD700] to-[#FDB931] hover:brightness-110 px-3.5 py-2 rounded-lg font-black uppercase transition-all flex items-center gap-1.5">
+        <i class="fa-solid fa-download"></i> Download .html
+      </button>
+    </div>
+  </div>
+
+  <!-- Dynamic Content Workspace Panels -->
+  <main class="flex-1 p-4 min-h-0 relative">
+    
+    <!-- Unified Workspace Layout Wrapper -->
+    <div id="workspace-wrapper" class="w-full h-full grid grid-cols-1 gap-4">
+      
+      <!-- Panel 1: Code Input Area -->
+      <div id="panel-editor" class="flex flex-col h-full bg-[#080d20] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 py-2.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-align-left text-yellow-500"></i> HTML/CSS/JS Source Code
+          </span>
+          <button onclick="clearEditor()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold bg-red-500/10 px-2 py-1 rounded-md">
+            <i class="fa-solid fa-eraser"></i> Reset Code
+          </button>
+        </div>
+
+        <!-- Editor Workspace Input -->
+        <div class="flex-1 flex editor-container overflow-hidden bg-[#040714] text-slate-300">
+          <div id="line-numbers" class="w-12 py-4 select-none text-right pr-3 text-slate-600 font-mono bg-black/20 border-r border-white/5 overflow-hidden">
+            <div>1</div>
+          </div>
+          <textarea id="code-editor" autocomplete="off" autofocus spellcheck="false" 
+            class="flex-1 py-4 px-3 bg-transparent outline-none border-none text-slate-200 resize-none overflow-y-auto leading-relaxed"
+            placeholder="Write your HTML, CSS, and JS here..."></textarea>
+        </div>
+      </div>
+
+      <!-- Panel 2: Rendered Live Preview Viewport -->
+      <div id="panel-preview" class="hidden flex flex-col h-full bg-[#080d20] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-4 py-2.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            Sandboxed Viewport
+          </span>
+          <span class="text-[10px] text-slate-500 font-mono">Isolated Frame Container</span>
+        </div>
+
+        <div class="flex-1 bg-white relative">
+          <iframe id="preview-frame" class="w-full h-full border-none bg-white"></iframe>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Notification Banner -->
+  <div id="toast-card" class="fixed bottom-6 right-6 bg-[#0B1126] border border-yellow-500/20 px-5 py-3.5 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 text-slate-300 text-xs shadow-2xl z-50">
+    <div class="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+      <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    </div>
+    <span id="toast-text">Workspace copied!</span>
+  </div>
+
+  <!-- Footer block -->
+  <footer class="p-3 text-center border-t border-white/5 shrink-0 text-[10px] text-slate-600 uppercase tracking-widest font-bold">
+    © 2026 StackFolio Playgrounds • Dynamic Sandbox
+  </footer>
+
+  <script>
+    const editor = document.getElementById('code-editor');
+    const lineNumbers = document.getElementById('line-numbers');
+    const previewFrame = document.getElementById('preview-frame');
+    const jsToggle = document.getElementById('js-toggle');
+    const workspaceWrapper = document.getElementById('workspace-wrapper');
+    
+    let debounceTimer = null;
+    let currentViewMode = 'editor'; // 'editor', 'preview', 'split'
+
+    // Default starter HTML template
+    const defaultTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: linear-gradient(135deg, #0f172a, #1e1b4b);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    }
+    button {
+      background: #ffea7a;
+      color: #000;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      font-weight: bold;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: 0.2s;
+    }
+    button:hover {
+      transform: scale(1.05);
+      background: #ffd700;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>StackFolio Live Test 🚀</h2>
+    <p>This sandbox updates in real-time as you type!</p>
+    <button id="counter-btn">Clicked 0 times</button>
+  </div>
+
+  <script>
+    let count = 0;
+    document.getElementById('counter-btn').addEventListener('click', () => {
+      count++;
+      document.getElementById('counter-btn').innerText = 'Clicked ' + count + ' times';
+    });
+  <\/script>
+</body>
+</html>`;
+
+    // Tailwind Play Demo
+    const tailwindTemplate = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="https://cdn.tailwindcss.com"><\/script>
+</head>
+<body class="bg-slate-900 text-white min-h-screen flex items-center justify-center p-6">
+  <div class="max-w-md w-full bg-slate-800 border border-slate-700/50 p-6 rounded-3xl shadow-2xl space-y-4">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-cyan-500/10 flex items-center justify-center text-cyan-400">
+        ✦
+      </div>
+      <div>
+        <h3 class="font-bold text-lg">Tailwind CSS Sandbox</h3>
+        <p class="text-xs text-slate-400">Built-in CDN testing ready</p>
+      </div>
+    </div>
+    <p class="text-sm text-slate-300 leading-relaxed">
+      Write modern utility-first classes right inside the preview container!
+    </p>
+    <div class="pt-2">
+      <span class="inline-block bg-cyan-500/10 text-cyan-400 text-xs px-3 py-1 rounded-full font-mono font-bold">
+        tailwindcss active
+      </span>
+    </div>
+  </div>
+</body>
+</html>`;
+
+    window.addEventListener('DOMContentLoaded', () => {
+      // Load Default Code
+      editor.value = defaultTemplate;
+      
+      // Setup events
+      editor.addEventListener('input', handleEditorInput);
+      editor.addEventListener('scroll', syncScroll);
+      
+      // Init viewports
+      updateLineNumbers();
+      triggerPreviewUpdate();
+      
+      // Handle workspace layout orientation resizing safely
+      window.addEventListener('resize', () => {
+        if (window.innerWidth < 768 && currentViewMode === 'split') {
+          setWorkspaceView('editor');
+        }
+      });
+    });
+
+    // Handle Workspace view adjustments (Single Tabs vs. Grid Split)
+    function setWorkspaceView(mode) {
+      currentViewMode = mode;
+      
+      const tabEditor = document.getElementById('view-tab-editor');
+      const tabPreview = document.getElementById('view-tab-preview');
+      const tabSplit = document.getElementById('view-tab-split');
+
+      const panelEditor = document.getElementById('panel-editor');
+      const panelPreview = document.getElementById('panel-preview');
+
+      // Clear all active tab buttons
+      [tabEditor, tabPreview, tabSplit].forEach(tab => {
+        if (tab) {
+          tab.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white";
+        }
+      });
+
+      // Show/Hide Panels depending on selection
+      if (mode === 'editor') {
+        tabEditor.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+        workspaceWrapper.className = "w-full h-full grid grid-cols-1";
+        panelEditor.classList.remove('hidden');
+        panelPreview.classList.add('hidden');
+      } 
+      else if (mode === 'preview') {
+        tabPreview.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+        workspaceWrapper.className = "w-full h-full grid grid-cols-1";
+        panelEditor.classList.add('hidden');
+        panelPreview.classList.remove('hidden');
+        // Ensure preview has fresh content
+        triggerPreviewUpdate();
+      } 
+      else if (mode === 'split') {
+        tabSplit.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+        workspaceWrapper.className = "w-full h-full grid grid-cols-2 gap-4"; // Strictly forced side-by-side split grid
+        panelEditor.classList.remove('hidden');
+        panelPreview.classList.remove('hidden');
+        // Ensure preview has fresh content
+        triggerPreviewUpdate();
+      }
+    }
+
+    // Handle Editor changes with debouncing (300ms delay to prevent frame lagging)
+    function handleEditorInput() {
+      updateLineNumbers();
+      
+      window.clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        triggerPreviewUpdate();
+      }, 300);
+    }
+
+    // Dynamic line numbers list calculation
+    function updateLineNumbers() {
+      const lines = editor.value.split('\n').length;
+      let numbersHtml = '';
+      for (let i = 1; i <= lines; i++) {
+        numbersHtml += `<div>${i}</div>`;
+      }
+      lineNumbers.innerHTML = numbersHtml;
+      syncScroll();
+    }
+
+    // Keep scroll offsets identical
+    function syncScroll() {
+      lineNumbers.scrollTop = editor.scrollTop;
+    }
+
+    // Updates Frame Document safely
+    function triggerPreviewUpdate() {
+      const isJsEnabled = jsToggle.checked;
+      
+      // Re-configure Sandbox policies based on toggle
+      if (isJsEnabled) {
+        previewFrame.setAttribute('sandbox', 'allow-scripts');
+      } else {
+        previewFrame.setAttribute('sandbox', ''); // Block all scripts
+      }
+
+      const code = editor.value;
+      
+      // Update iframe context using srcdoc for high efficiency
+      previewFrame.srcdoc = code;
+    }
+
+    function toggleJsExecution() {
+      triggerPreviewUpdate();
+      showToast(jsToggle.checked ? 'JavaScript enabled' : 'JavaScript blocked', 'shield');
+    }
+
+    // Inject Demo Templates
+    function injectPreset(type) {
+      if (type === 'counter') {
+        editor.value = defaultTemplate;
+      } else if (type === 'tailwind') {
+        editor.value = tailwindTemplate;
+      }
+      
+      handleEditorInput();
+      showToast('Template injected!', 'bolt');
+    }
+
+    // Clear Workspace
+    function clearEditor() {
+      editor.value = `<!DOCTYPE html>
+<html>
+<body>
+  <h2>Empty Sandbox Canvas</h2>
+</body>
+</html>`;
+      handleEditorInput();
+      showToast('Workspace reset', 'eraser');
+    }
+
+    // Copy Code to Clipboard
+    function copyCode() {
+      const text = editor.value;
+      if (!text) return;
+
+      const temp = document.createElement('textarea');
+      temp.value = text;
+      document.body.appendChild(temp);
+      temp.select();
+      document.execCommand('copy');
+      document.body.removeChild(temp);
+
+      showToast('Source copied to clipboard!');
+    }
+
+    // Export HTML File download
+    function downloadCode() {
+      const text = editor.value;
+      if (!text) return;
+
+      const blob = new Blob([text], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const dl = document.createElement('a');
+      dl.href = url;
+      dl.download = 'stackfolio_preview.html';
+      document.body.appendChild(dl);
+      dl.click();
+      document.body.removeChild(dl);
+      URL.revokeObjectURL(url);
+
+      showToast('File downloaded!');
+    }
+
+    // Clean Toast Alerts (no system alert screens)
+    function showToast(text, iconClass = 'circle-check') {
+      const box = document.getElementById('toast-card');
+      const icon = document.getElementById('toast-icon');
+      const textSpan = document.getElementById('toast-text');
+
+      icon.className = `fa-solid fa-${iconClass}`;
+      textSpan.innerText = text;
+
+      box.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      window.clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => {
+        box.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 2000);
+    }
+  </script>
+</body>
+</html>
