@@ -134,6 +134,10 @@
         </label>
       </div>
 
+      <button onclick="document.getElementById('file-input').click()" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
+        <i class="fa-solid fa-upload mr-1 text-[#00D2FF]"></i> Upload
+      </button>
+
       <div class="flex items-center gap-2">
         <button onclick="injectPreset('counter')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
           <i class="fa-solid fa-square-plus mr-1 text-yellow-500"></i> Counter
@@ -233,6 +237,9 @@
     <span id="toast-text" class="text-sm font-semibold">Done!</span>
   </div>
 
+  <!-- File Input (Hidden) -->
+  <input type="file" id="file-input" class="hidden" accept=".html,.htm" onchange="handleFileUpload(event)" />
+
   <script>
     // ============================================================================
     // DOM ELEMENT REFERENCES
@@ -245,6 +252,7 @@
     const workspaceWrapper = document.getElementById('workspace-wrapper');
     const consoleLogs = document.getElementById('console-logs');
     const logCount = document.getElementById('log-count');
+    const fileInput = document.getElementById('file-input');
 
     // ============================================================================
     // STATE VARIABLES
@@ -641,6 +649,28 @@
         showToast('Template injected!', 'bolt');
       } catch (error) {
         console.error('Template injection error:', error);
+      }
+    }
+
+    // ============================================================================
+    // FILE UPLOAD
+    // ============================================================================
+    function handleFileUpload(event) {
+      try {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          editor.value = e.target.result;
+          handleEditorInput();
+          showToast(`Loaded: ${file.name}`, 'file');
+        };
+        reader.readAsText(file);
+        document.getElementById('file-input').value = '';
+      } catch (error) {
+        console.error('File upload error:', error);
+        showToast('Error loading file', 'alert-circle');
       }
     }
 
