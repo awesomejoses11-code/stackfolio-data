@@ -1,7 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='64' x2='0' y2='0'%3E%3Cstop offset='0' stop-color='%23050816'/%3E%3Cstop offset='1' stop-color='%2311182e'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' fill='url(%23g)'/%3E%3Crect x='10' y='28' width='6' height='36' fill='%23a78bfa'/%3E%3Crect x='20' y='20' width='6' height='44' fill='%2338bdf8'/%3E%3Crect x='30' y='32' width='6' height='32' fill='%23a78bfa'/%3E%3Crect x='40' y='16' width='6' height='48' fill='%2338bdf8'/%3E%3Crect x='50' y='24' width='6' height='40' fill='%23a78bfa'/%3E%3Ccircle cx='18' cy='18' r='1' fill='%23fff' opacity='0.8'/%3E%3Ccircle cx='42' cy='12' r='1' fill='%23fff' opacity='0.8'/%3E%3C/svg%3E">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>NEON FURY — Ultimate Combat Arena</title>
@@ -76,12 +75,17 @@
   .glow-red   { color:#ff4d4d; text-shadow:0 0 12px #ff4d4d; }
 
   .combat-log{
-    position:absolute; bottom:140px; left:14px;
-    width:220px; max-height:80px; overflow-y:auto;
-    z-index:15; padding:6px;
+    position:absolute; top:clamp(118px, 24vw, 150px); left:50%; transform:translateX(-50%);
+    width:min(88%, 380px); max-height:72px; overflow:hidden;
+    z-index:25; padding:4px 6px;
+    display:flex; flex-direction:column; align-items:center; gap:2px;
     border-radius:8px;
-    border: 1px solid rgba(30,144,255,0.15);
+    background:linear-gradient(180deg, rgba(4,6,18,0.55), rgba(4,6,18,0.12));
+    border: 1px solid rgba(30,144,255,0.18);
+    backdrop-filter: blur(2px);
+    pointer-events:none;
   }
+  .combat-log .log-entry{ width:100%; text-align:center; border-left:none; border-right:none; background:transparent !important; }
   .log-entry{
     font-size:clamp(7px, 1.5vw, 12px); font-family:'Space Mono', monospace;
     padding:2px 6px; margin:1px 0; border-left:3px solid;
@@ -273,30 +277,37 @@
   <div class="flex-1 overflow-y-auto max-w-3xl mx-auto space-y-4 text-sm">
     <div>
       <h3 class="font-bold mb-2 text-cyan-400">🎮 CONTROLS</h3>
-      <p><b>Movement:</b> Arrow Keys / WASD<br><b>Jump:</b> Space/Up Arrow<br><b>Attack:</b> J Key<br><b>Defend:</b> K Key<br><b>Charge:</b> Hold L Key<br><b>Dash:</b> Shift Key</p>
+      <p><b>Movement:</b> Arrow Keys / WASD<br><b>Jump:</b> Space / Up Arrow<br><b>Attack:</b> J Key<br><b>Defend:</b> K Key<br><b>Kick / Downslam:</b> L Key<br><b>Dash:</b> Shift Key</p>
+    </div>
+    <div>
+      <h3 class="font-bold mb-2 text-cyan-400">⚡ ENERGY &amp; COMBOS</h3>
+      <p><b>Energy bar</b> replaces the old kick charge. Dashes cost <b>10%</b> energy; <b>Downslam</b> (jump + kick in mid-air) costs <b>25%</b> and deals <b>2.5×</b> a normal hit.<br><b>Dash attack</b> (dash then attack) deals <b>1.5×</b> damage.<br>Energy fully refills over <b>30 seconds</b>, and the refill time is divided by <b>1.05</b> per combo strike — the longer your chain, the faster you recover. Combos also add a small flat energy bonus per hit.<br>Each successive strike multiplies damage by <b>1.05×</b>. Combo breaks when you take a hit or stop attacking for ~2s.</p>
     </div>
   </div>
 </div>
 
 <div id="gameScreen" class="screen hidden flex flex-col" style="background:transparent;">
   <div id="enemyBadge" class="enemy-badge hidden"></div>
-  <div class="relative z-10 p-3 bg-black/50 border-b border-white/10">
+  <div class="relative z-10 p-3" style="background:transparent; border:none;">
     <div class="flex gap-4 items-center mb-3">
-      <div class="flex-1"><div class="flex justify-between text-xs mono-font mb-1"><span class="text-cyan-400 font-bold" id="playerNameLabel">PILOT</span><span id="playerHPText" class="text-cyan-300 font-bold">100/100</span></div><div class="hud-bar"><div id="playerHPBar" class="hud-bar-fill bg-gradient-to-r from-emerald-500 to-cyan-400" style="width:100%"></div></div></div>
-      <div class="text-center px-4"><div class="arcade-font text-xl text-cyan-400 font-bold leading-none" id="levelText">LEVEL 1</div><div id="timerText" class="text-[10px] text-gray-400 mono-font mt-1">00:00</div><div id="diffBadge" class="text-[10px] mono-font mt-1 font-bold">NOVICE</div></div>
-      <div class="flex-1"><div class="flex justify-between text-xs mono-font mb-1"><span id="opponentHPText" class="text-pink-300 font-bold">100/100</span><span class="text-pink-400 font-bold" id="opponentNameLabel">OPPONENT</span></div><div class="hud-bar"><div id="opponentHPBar" class="hud-bar-fill bg-gradient-to-l from-red-500 to-pink-500 ml-auto" style="width:100%"></div></div></div>
+      <div class="flex-1"><div class="flex justify-between text-xs mono-font mb-1"><span class="text-cyan-400 font-bold" id="playerNameLabel" style="text-shadow:0 0 8px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">PILOT</span><span id="playerHPText" class="text-cyan-300 font-bold" style="text-shadow:0 0 8px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">100/100</span></div><div class="hud-bar"><div id="playerHPBar" class="hud-bar-fill bg-gradient-to-r from-emerald-500 to-cyan-400" style="width:100%"></div></div></div>
+      <div class="text-center px-4"><div class="arcade-font text-xl text-cyan-400 font-bold leading-none" id="levelText" style="text-shadow:0 0 8px rgba(0,0,0,0.95);">LEVEL 1</div><div id="timerText" class="text-[10px] text-gray-400 mono-font mt-1" style="text-shadow:0 0 6px rgba(0,0,0,0.95);">00:00</div><div id="diffBadge" class="text-[10px] mono-font mt-1 font-bold" style="text-shadow:0 0 6px rgba(0,0,0,0.95);">NOVICE</div></div>
+      <div class="flex-1"><div class="flex justify-between text-xs mono-font mb-1"><span id="opponentHPText" class="text-pink-300 font-bold" style="text-shadow:0 0 8px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">100/100</span><span class="text-pink-400 font-bold" id="opponentNameLabel" style="text-shadow:0 0 8px rgba(0,0,0,0.95), 0 0 4px rgba(0,0,0,0.95);">OPPONENT</span></div><div class="hud-bar"><div id="opponentHPBar" class="hud-bar-fill bg-gradient-to-l from-red-500 to-pink-500 ml-auto" style="width:100%"></div></div></div>
     </div>
     <div style="display:flex; gap:16px; align-items:center; padding:0 20px;">
-      <div style="flex:1; max-width:200px;">
-        <div style="font-size:clamp(9px,1.2vw,11px); color:#9966ff; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">⭐ KICK CHARGE</div>
-        <div class="hud-bar"><div id="kickBar" class="hud-bar-fill bg-gradient-to-r from-purple-500 to-pink-500" style="width:0%"></div></div>
-        <div style="font-size:clamp(8px,1vw,10px); color:#9966ff; margin-top:4px; text-align:center; font-weight:600;" id="kickInfo">Ready</div>
+      <div style="flex:1; max-width:260px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <div style="font-size:clamp(9px,1.2vw,11px); color:#00ffd9; font-weight:bold; text-transform:uppercase; text-shadow:0 0 6px rgba(0,0,0,0.95);">⚡ ENERGY</div>
+          <div id="comboInfo" style="font-size:clamp(9px,1.2vw,11px); color:#ffaa00; font-weight:bold; text-transform:uppercase; text-shadow:0 0 6px rgba(0,0,0,0.95);"></div>
+        </div>
+        <div class="hud-bar"><div id="energyBar" class="hud-bar-fill" style="width:100%; background:linear-gradient(to right,#00ffd9,#1e90ff); box-shadow:0 0 10px rgba(0,255,217,0.6) inset;"></div></div>
+        <div style="font-size:clamp(8px,1vw,10px); color:#00ffd9; margin-top:4px; text-align:center; font-weight:600; text-shadow:0 0 6px rgba(0,0,0,0.95);" id="energyInfo">100%</div>
       </div>
     </div>
   </div>
+  <div class="combat-log panel-dark" id="combatLog"></div>
   <div class="flex-1 relative">
     <button id="btnPause" class="absolute top-3 left-3 z-20 ctrl-btn" style="width:42px;height:42px;"><i class="fa-solid fa-pause"></i></button>
-    <div class="combat-log panel-dark" id="combatLog"></div>
   </div>
   <div class="relative z-10 p-3 bg-gradient-to-t from-black/90 to-black/30 border-t border-white/10 flex justify-between items-end gap-4">
     <div class="flex flex-col items-center gap-1"><button id="btnJump" class="ctrl-btn"><i class="fa-solid fa-arrow-up"></i></button><div class="flex gap-1"><button id="btnLeft" class="ctrl-btn"><i class="fa-solid fa-arrow-left"></i></button><button id="btnDash" class="ctrl-btn dash relative overflow-hidden"><i class="fa-solid fa-forward"></i><div id="dashCDRing" class="cooldown-ring" style="--cd:0%"></div></button><button id="btnRight" class="ctrl-btn"><i class="fa-solid fa-arrow-right"></i></button></div></div>
@@ -444,6 +455,9 @@ const UPGRADES = [
   {key:'speed',icon:'⚙️',name:'ACTUATOR TUNING',desc:'+8% joint speed',baseCost:90,maxLvl:10},
   {key:'health',icon:'❤️',name:'CELL CAPACITY',desc:'+15 Max HP',baseCost:80,maxLvl:20}
 ];
+// Cost scaling for stat upgrades. Each level multiplies the base cost by this factor.
+const UPGRADE_PRICE_MULT = 1.15;
+function upgradeCost(u, lvl){ return Math.round(u.baseCost * Math.pow(UPGRADE_PRICE_MULT, lvl - 1)); }
 
 const state = {
   active:false, paused:false, difficulty:null, levelIdx:0, enemyType:'balanced',
@@ -452,7 +466,14 @@ const state = {
   dashCD:0, attackCD:0, opponentAttackCD:0, defendActive:0, opDefendActive:0,
   chargeLevel:0, chargeProgress:0, charging:false, aiNextDecision:0, groundY:0,
   combo:0, maxCombo:0, lastHitTime:0, frozen:false, opponentStagger:0, playerStagger:0,
-  ambienceTimer:0
+  ambienceTimer:0,
+  // ----- Energy / Combo system -----
+  energy:100, maxEnergy:100,
+  energyRefillBaseTime:30,   // base seconds for a full 0→100 refill
+  comboTimeoutSec:2.0,       // combo expires after this many seconds without a hit
+  comboMul:1.05,             // damage multiplier per combo strike
+  // costs (percent of maxEnergy)
+  dashEnergyCost:10, downslamEnergyCost:25
 };
 
 const PHYS = {
@@ -540,6 +561,13 @@ class HumanoidFighter {
     this.attackTimeout = null;
     this.group = null;
     this.parts = {};
+    // Special-attack glow (dash strike / downslam). glowTimer counts down in seconds.
+    this.glowTimer = 0;
+    this.glowDuration = 0.45;
+    this.glowColor = new THREE.Color(0xffffff);
+    this.glowMats = [];        // emissive materials, with cached base intensity
+    this.glowLight = null;     // dedicated aura point-light
+    this.glowAura = null;      // translucent shell mesh
     this.hp = 100;
     this.maxHp = 100;
     this.isPlayer = (color === 0x00d9ff);
@@ -716,6 +744,29 @@ class HumanoidFighter {
     this.parts.legL = legLRig.group;
     this.parts.legR = legRRig.group;
 
+    // ---- GLOW RIG (for dash-strike / downslam special FX) ----
+    // Cache every emissive material once and remember its base intensity so the
+    // glow effect can pulse it up and restore it cleanly each frame.
+    this.glowMats = [];
+    character.traverse(obj => {
+      const m = obj.material;
+      if (m && m.emissive){ m.userData.baseEmissive = m.emissiveIntensity; this.glowMats.push(m); }
+    });
+    // Soft pulsing aura shell around the fighter (hidden until a special hits).
+    const aura = new THREE.Mesh(
+      new THREE.SphereGeometry(0.95, 20, 16),
+      new THREE.MeshBasicMaterial({ color: this.color, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending })
+    );
+    aura.position.y = 0.9;
+    aura.visible = false;
+    character.add(aura);
+    this.glowAura = aura;
+    // Bright aura light that flares on a special attack.
+    const glowLight = new THREE.PointLight(this.color, 0, 7);
+    glowLight.position.set(0, 1.0, 0);
+    character.add(glowLight);
+    this.glowLight = glowLight;
+
     character.position.set(this.x, this.y + state.groundY, 0);
     // Initial facing: rotate the whole rig around Y so it faces along ±X
     character.rotation.y = (this.facing === 1) ? Math.PI / 2 : -Math.PI / 2;
@@ -724,9 +775,13 @@ class HumanoidFighter {
   }
 
   updatePhysics(dt){
+    // Movement is directly proportional to the fighter's speed: their effective
+    // movement-frames-per-second is (baseFPS * speedMult), so their on-screen
+    // velocity scales linearly with the speed stat.
+    const speedMult = this.isPlayer ? getPlayerSpeedMult() : 1;
     if (this.walkInput !== 0){
-      this.vx += this.walkInput * PHYS.WALK_ACC * dt;
-      const max = PHYS.MAX_WALK * (this.isPlayer ? getPlayerSpeedMult() : 1);
+      this.vx += this.walkInput * PHYS.WALK_ACC * speedMult * dt;
+      const max = PHYS.MAX_WALK * speedMult;
       if (Math.abs(this.vx) > max) this.vx = Math.sign(this.vx) * max;
       this.facing = this.walkInput > 0 ? 1 : -1;
     }
@@ -735,6 +790,9 @@ class HumanoidFighter {
     if (Math.abs(this.vx) < 0.05) this.vx = 0;
 
     if (this.dashTimer > 0) this.dashTimer -= dt;
+    // Position advances by (movement frames executed) × (per-frame step).
+    // Since movementFPS = baseFPS × speedMult, faster fighters cover more
+    // screen distance per real second — exactly proportional to speed.
     this.x += this.vx * dt;
     const bound = 4.5;
     if (this.x > bound){ this.x = bound; this.vx = 0; }
@@ -795,11 +853,43 @@ class HumanoidFighter {
   dash(){
     if (this.dashTimer > 0) return false;
     const dir = this.walkInput !== 0 ? this.walkInput : this.facing;
-    this.vx = dir * PHYS.DASH_VEL;
+    const speedMult = this.isPlayer ? getPlayerSpeedMult() : 1;
+    this.vx = dir * PHYS.DASH_VEL * speedMult;
     this.facing = dir;
     this.dashTimer = PHYS.DASH_DUR;
     this.setAnim('dash');
     return true;
+  }
+
+  // Fire the special-attack glow. hexColor tints the aura (dash strike vs downslam).
+  triggerGlow(hexColor){
+    if (hexColor != null && this.glowColor) this.glowColor.setHex(hexColor);
+    if (this.glowLight) this.glowLight.color.setHex(hexColor != null ? hexColor : this.color);
+    if (this.glowAura){ this.glowAura.material.color.setHex(hexColor != null ? hexColor : this.color); this.glowAura.visible = true; }
+    this.glowTimer = this.glowDuration;
+  }
+
+  // Animate the active glow. Called every frame from applyAnim.
+  updateGlow(dt){
+    if (this.glowTimer > 0){
+      this.glowTimer = Math.max(0, this.glowTimer - dt);
+      const k = this.glowTimer / this.glowDuration;          // 1 → 0 over the effect
+      const pulse = k * (0.6 + 0.4 * Math.sin(performance.now() * 0.03));
+      for (const m of this.glowMats){
+        m.emissiveIntensity = (m.userData.baseEmissive || 0) + pulse * 3.2;
+      }
+      if (this.glowLight) this.glowLight.intensity = pulse * 6;
+      if (this.glowAura){
+        this.glowAura.material.opacity = pulse * 0.35;
+        const s = 1 + (1 - k) * 0.6;                          // expanding shell
+        this.glowAura.scale.setScalar(s);
+      }
+    } else if (this.glowLight && (this.glowLight.intensity !== 0 || (this.glowAura && this.glowAura.visible))){
+      // Reset to base state exactly once when the effect ends.
+      for (const m of this.glowMats) m.emissiveIntensity = (m.userData.baseEmissive || 0);
+      this.glowLight.intensity = 0;
+      if (this.glowAura){ this.glowAura.material.opacity = 0; this.glowAura.visible = false; this.glowAura.scale.setScalar(1); }
+    }
   }
 
   /* ----- ANIMATION FUNCTION (ported directly from animator updateAnim) -----
@@ -807,6 +897,9 @@ class HumanoidFighter {
      used local `t` directly. We replicate that by scaling dt the same way. */
   applyAnim(dt){
     if (!this.group) return;
+
+    // Drive the special-attack glow FX (dash strike / downslam).
+    this.updateGlow(dt);
 
     // Advance local anim time: 1.5× faster for snappy combat
     const rate = this.isPlayer ? 7.0 * getPlayerSpeedMult() : 7.0;
@@ -1269,21 +1362,55 @@ function getPlayerSpeedMult(){
   return m;
 }
 
+// Cached HUD element references (populated on first use) to avoid repeated
+// getElementById lookups inside the per-frame combat loop.
+const DOM = {};
+function cacheDOM(){
+  ['playerHPText','opponentHPText','playerHPBar','opponentHPBar',
+   'energyBar','energyInfo','comboInfo','dashCDRing','combatLog']
+    .forEach(id => { DOM[id] = document.getElementById(id); });
+}
 function updateHUD(){
   const pctP = state.playerHP / state.playerMaxHP;
   const pctO = state.opponentHP / state.opponentMaxHP;
-  document.getElementById('playerHPText').innerHTML = `${Math.round(state.playerHP)}/${Math.round(state.playerMaxHP)}`;
-  document.getElementById('opponentHPText').innerHTML = `${Math.round(state.opponentHP)}/${Math.round(state.opponentMaxHP)}`;
-  document.getElementById('playerHPBar').style.width = (pctP * 100) + '%';
-  document.getElementById('opponentHPBar').style.width = (pctO * 100) + '%';
+  DOM.playerHPText.innerHTML = `${Math.round(state.playerHP)}/${Math.round(state.playerMaxHP)}`;
+  DOM.opponentHPText.innerHTML = `${Math.round(state.opponentHP)}/${Math.round(state.opponentMaxHP)}`;
+  DOM.playerHPBar.style.width = (pctP * 100) + '%';
+  DOM.opponentHPBar.style.width = (pctO * 100) + '%';
 }
-function updateChargeUI(){ }
+function updateEnergyUI(){
+  const bar = DOM.energyBar;
+  const info = DOM.energyInfo;
+  const combo = DOM.comboInfo;
+  if (!bar) return;
+  const pct = Math.max(0, Math.min(100, state.energy / state.maxEnergy * 100));
+  bar.style.width = pct + '%';
+  // Color shifts: low → amber, mid → cyan, high → magenta accent
+  if (pct < 25){
+    bar.style.background = 'linear-gradient(to right,#ff6a00,#ffaa00)';
+  } else if (pct < 60){
+    bar.style.background = 'linear-gradient(to right,#00ffd9,#1e90ff)';
+  } else {
+    bar.style.background = 'linear-gradient(to right,#00ffd9,#ff3aa8)';
+  }
+  if (info) info.textContent = Math.round(pct) + '%';
+  if (combo){
+    if (state.combo > 1){
+      const mult = Math.pow(state.comboMul, state.combo - 1);
+      combo.textContent = `COMBO ×${state.combo}  (${mult.toFixed(2)}× DMG)`;
+      combo.style.color = state.combo >= 5 ? '#ff3aa8' : '#ffaa00';
+    } else {
+      combo.textContent = '';
+    }
+  }
+}
+function updateChargeUI(){ updateEnergyUI(); }
 function updateDashCD(){
   const pct = state.dashCD / PHYS.DASH_CD * 100;
-  document.getElementById('dashCDRing').style.setProperty('--cd', (1 - pct / 100) * 100 + '%');
+  DOM.dashCDRing.style.setProperty('--cd', (1 - pct / 100) * 100 + '%');
 }
 function addLog(msg, type){
-  const log = document.getElementById('combatLog');
+  const log = DOM.combatLog || document.getElementById('combatLog');
   const e = document.createElement('div');
   e.className = `log-entry log-${type}`;
   e.textContent = `> ${msg}`;
@@ -1332,6 +1459,12 @@ function enemyAttack(){
       playerFighter.hitFlash = 0.2;
       screenShake();
       sfx.hit();
+      // Getting hit breaks the combo chain
+      if (state.combo > 0){
+        addLog(`Combo broken! ×${state.combo} chain lost`, 'info');
+        state.combo = 0;
+        updateEnergyUI();
+      }
     }
     state.playerHP = Math.max(0, state.playerHP - dmg);
     updateHUD();
@@ -1353,12 +1486,20 @@ function doPlayerAttack(){
   state.attackCD = PHYS.ATTACK_CD;
   playerFighter.setAnim('attack');
   sfx.hit();
+  // Detect dash-attack: attack issued while the dash window is still active
+  const isDashAttack = (playerFighter.dashTimer > 0) || (playerFighter.anim === 'dash');
+  if (isDashAttack){ playerFighter.triggerGlow(0xc084fc); sfx.dash(); }   // violet dash-strike flare
   setTimeout(() => {
     if (!state.active) return;
     const dist = Math.abs(playerFighter.x - opponentFighter.x);
     if (dist > PHYS.ATTACK_RANGE) return;
 
     let dmg = getPlayerBaseDamage() + (Math.random() - 0.5) * 4;
+    let critTag = '';
+    if (isDashAttack){
+      dmg *= 1.5;
+      critTag = 'DASH STRIKE';
+    }
     if (state.chargeLevel > 0){
       dmg *= (1 + state.chargeLevel * 0.5);
       addLog(`CRITICAL IMPACT MULTIPLIER! -${Math.round(dmg)}`, 'crit');
@@ -1372,15 +1513,25 @@ function doPlayerAttack(){
       addLog(`Enemy structural blocks! -${Math.round(dmg)}`, 'block');
       sfx.block();
     } else {
-      addLog(`Successful hit output! -${Math.round(dmg)} AP`, 'hit');
+      // Apply combo multiplier (1.05× per existing combo strike)
+      const comboFactor = Math.pow(state.comboMul, state.combo);
+      dmg *= comboFactor;
+      if (critTag){
+        addLog(`${critTag}! -${Math.round(dmg)} AP ×${state.combo+1}`, 'crit');
+        sfx.crit();
+      } else {
+        addLog(`Hit -${Math.round(dmg)} AP  ×${state.combo+1}`, 'hit');
+      }
       opponentFighter.setAnim('hurt');
       opponentFighter.hitFlash = 0.2;
       screenShake();
       sfx.hit();
+      registerCombo();
     }
     state.damageDealt += dmg;
     state.opponentHP = Math.max(0, state.opponentHP - dmg);
     updateHUD();
+    updateEnergyUI();
     if (state.opponentHP <= 0) endMatch(true);
   }, 90);
 }
@@ -1398,31 +1549,79 @@ function doPlayerDefend(){
 
 function doPlayerKick(){
   if (!state.active || state.paused || state.attackCD > 0) return;
+
+  // Downslam = kick while airborne. Costs 25% energy and deals 2.5× a normal hit.
+  const isDownslam = !playerFighter.grounded;
+  if (isDownslam){
+    const cost = state.downslamEnergyCost;
+    if (state.energy < cost){
+      addLog(`Not enough energy for downslam (need ${cost}%)`, 'info');
+      return;
+    }
+    state.energy -= cost;
+    // Hard-drive the player straight down for visual feedback
+    playerFighter.vy = -Math.max(8, Math.abs(playerFighter.vy) + 4);
+    playerFighter.triggerGlow(0xffaa00);   // amber downslam flare
+    sfx.crit();
+    updateEnergyUI();
+  }
+
   state.attackCD = PHYS.ATTACK_CD;
   playerFighter.setAnim('kick');
   sfx.hit();
+  // Downslam impact resolves on ground contact (slightly later + wider reach) so the
+  // dive reliably connects; a grounded kick resolves on its quick 110ms wind-up.
+  const impactDelay = isDownslam ? 170 : 110;
+  const reachBonus  = isDownslam ? 0.7 : 0.3;
   setTimeout(() => {
     if (!state.active) return;
     const dist = Math.abs(playerFighter.x - opponentFighter.x);
-    if (dist > PHYS.ATTACK_RANGE + 0.3) return;
+    if (dist > PHYS.ATTACK_RANGE + reachBonus) return;
 
-    let dmg = getPlayerBaseDamage() * 2.7 + (Math.random() - 0.5) * 6;
+    let dmg;
+    if (isDownslam){
+      // Downslam = 2.5× a normal punch hit
+      dmg = (getPlayerBaseDamage() * 2.5) + (Math.random() - 0.5) * 6;
+    } else {
+      // Standard grounded kick (unchanged power)
+      dmg = getPlayerBaseDamage() * 2.7 + (Math.random() - 0.5) * 6;
+    }
+
     if (state.opDefendActive > 0){
       dmg *= 0.35;
-      addLog(`Enemy blocks kick! -${Math.round(dmg)}`, 'block');
+      addLog(`Enemy blocks ${isDownslam ? 'downslam' : 'kick'}! -${Math.round(dmg)}`, 'block');
       sfx.block();
     } else {
-      addLog(`DEVASTATING KICK! -${Math.round(dmg)} AP`, 'crit');
+      // Apply combo multiplier
+      const comboFactor = Math.pow(state.comboMul, state.combo);
+      dmg *= comboFactor;
+      if (isDownslam){
+        addLog(`💥 DOWNSLAM! -${Math.round(dmg)} AP  ×${state.combo+1}`, 'crit');
+      } else {
+        addLog(`DEVASTATING KICK! -${Math.round(dmg)} AP  ×${state.combo+1}`, 'crit');
+      }
       opponentFighter.setAnim('hurt');
       opponentFighter.hitFlash = 0.2;
       screenShake();
       sfx.crit();
+      registerCombo();
     }
     state.damageDealt += dmg;
     state.opponentHP = Math.max(0, state.opponentHP - dmg);
     updateHUD();
+    updateEnergyUI();
     if (state.opponentHP <= 0) endMatch(true);
-  }, 110);
+  }, impactDelay);
+}
+
+// Increments combo count and grants energy for chaining hits.
+function registerCombo(){
+  state.combo += 1;
+  state.lastHitTime = performance.now();
+  if (state.combo > state.maxCombo) state.maxCombo = state.combo;
+  // Chaining combos increases energy: small flat bonus that scales softly with chain length.
+  const bonus = 2 + Math.min(8, state.combo * 0.5);
+  state.energy = Math.min(state.maxEnergy, state.energy + bonus);
 }
 
 function doPlayerCharge(){
@@ -1433,12 +1632,20 @@ function stopCharge(){ }
 
 function doPlayerDash(){
   if (!state.active || state.paused || state.dashCD > 0) return;
+  // Dash consumes 10% energy. Refuse the action when there isn't enough.
+  const cost = state.dashEnergyCost;
+  if (state.energy < cost){
+    addLog(`Not enough energy to dash (need ${cost}%)`, 'info');
+    return;
+  }
   if (playerFighter.dash()){
+    state.energy -= cost;
     state.dashCD = PHYS.DASH_CD;
     state.charging = false;
     state.chargeLevel = 0;
     state.chargeProgress = 0;
     sfx.dash();
+    updateEnergyUI();
   }
 }
 
@@ -1484,6 +1691,27 @@ function tick(dt){
       state.chargeProgress = 0;
     }
   }
+
+  // ----- Energy refill -----
+  // Base refill: full 100% over `energyRefillBaseTime` seconds.
+  // While a combo is active, the refill *duration* is shortened by dividing
+  // it by 1.05 once per stacked combo strike: refillTime = base / 1.05^combo.
+  // That means refill rate per second grows by 1.05^combo while comboing.
+  if (state.energy < state.maxEnergy){
+    const comboMul = Math.pow(1.05, state.combo);
+    const refillTime = state.energyRefillBaseTime / comboMul;
+    const refillPerSec = state.maxEnergy / refillTime;
+    state.energy = Math.min(state.maxEnergy, state.energy + refillPerSec * dt);
+  }
+
+  // ----- Combo timeout -----
+  if (state.combo > 0 && state.lastHitTime > 0){
+    const sinceLast = (performance.now() - state.lastHitTime) / 1000;
+    if (sinceLast > state.comboTimeoutSec){
+      state.combo = 0;
+    }
+  }
+
   updateChargeUI();
   updateDashCD();
   playerFighter.updatePhysics(dt);
@@ -1523,6 +1751,11 @@ function startMatch(idx){
   state.chargeLevel = 0;
   state.chargeProgress = 0;
   state.charging = false;
+  // Reset combo + energy at the start of every match
+  state.combo = 0;
+  state.maxCombo = 0;
+  state.lastHitTime = 0;
+  state.energy = state.maxEnergy;
   state.input = { left:false, right:false, jump:false };
   document.getElementById('levelText').innerText = `LVL ${idx + 1} · ${arena.name}`;
   const badge = document.getElementById('diffBadge');
@@ -1530,6 +1763,7 @@ function startMatch(idx){
   badge.style.color = diff.color;
   document.getElementById('combatLog').innerHTML = '';
   updateHUD();
+  updateEnergyUI();
   
   // Show story screen
   const threatLevel = arena.isBoss ? '🔴' : (idx < 3 ? '🟢' : idx < 6 ? '🟡' : '🔴');
@@ -1661,7 +1895,7 @@ function buildUpgrades(){
   
   for (const u of UPGRADES){
     const lvl = gameSave.player.stats[u.key];
-    const cost = Math.round(u.baseCost * Math.pow(1.4, lvl - 1));
+    const cost = upgradeCost(u, lvl);
     const maxed = lvl >= u.maxLvl;
     const colors = upgradeColors[u.key];
     const progress = (lvl / u.maxLvl) * 100;
@@ -1691,6 +1925,7 @@ function buildUpgrades(){
           </div>
         </div>
         <p style="font-size: clamp(9px,1.3vw,11px); color: #888; margin: 0;">${u.desc}</p>
+        <div style="font-size: clamp(8px,1.1vw,10px); color: #5a6b8c; margin-top: 4px;">${maxed ? 'Fully upgraded' : `Base ${u.baseCost} cr · +15% per level`}</div>
         <div style="background: rgba(0,0,0,0.4); height: 4px; border-radius: 2px; margin-top: 8px; overflow: hidden;">
           <div style="height: 100%; background: linear-gradient(90deg, ${colors.color}, ${colors.glow}); width: ${progress}%; transition: width 0.3s ease;"></div>
         </div>
@@ -1722,7 +1957,7 @@ function buildUpgrades(){
       const key = btn.dataset.upgrade;
       const u = UPGRADES.find(x => x.key === key);
       const lvl = gameSave.player.stats[key];
-      const cost = Math.round(u.baseCost * Math.pow(1.4, lvl - 1));
+      const cost = upgradeCost(u, lvl);
       if (!gameSave.spendCredits(cost)) return;
       gameSave.upgradeStat(key);
       buildShop();
@@ -1913,6 +2148,7 @@ function bindControls(){
   });
 }
 
+cacheDOM();
 bindControls();
 initAudio();
 
