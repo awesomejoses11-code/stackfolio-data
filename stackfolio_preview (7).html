@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackFolio Static Utilities Hub</title>
+  <meta name="description" content="A curated suite of standalone static utilities for developers, degens, and creators." />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --gold: #FFD700;
+      --gold-dark: #B8860B;
+      --deep-blue: #050816;
+      --card-blue: #0B1230;
+      --border-blue: rgba(255, 215, 0, 0.1);
+      --cyan: #00D2FF;
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--deep-blue);
+      background-image:
+        radial-gradient(circle at 10% 20%, rgba(255, 215, 0, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 90% 80%, rgba(0, 210, 255, 0.05) 0%, transparent 45%),
+        radial-gradient(circle at 50% 50%, #111B3A 0%, var(--deep-blue) 100%);
+      color: #F8FAFC;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow-x: hidden;
+    }
+
+   .glass {
+      background: rgba(11, 18, 48, 0.65);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-blue);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+   .glass:hover {
+      background: rgba(11, 18, 48, 0.85);
+      border-color: rgba(255, 215, 0, 0.25);
+      transform: translateY(-4px);
+      box-shadow: 0 16px 35px rgba(255, 215, 0, 0.08);
+    }
+
+   .btn-gold {
+      background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%);
+      color: #050816;
+      font-weight: 800;
+      transition: all 0.25s ease-in-out;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    }
+
+   .btn-gold:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.35);
+      filter: brightness(1.05);
+    }
+
+   .space-dust {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+      z-index: -1;
+      overflow: hidden;
+    }
+
+   .dust-particle {
+      position: absolute;
+      background: white;
+      border-radius: 50%;
+      opacity: 0.1;
+      animation: driftUp 20s linear infinite;
+    }
+
+    @keyframes driftUp {
+      0% { transform: translateY(105vh) scale(0.5); opacity: 0; }
+      50% { opacity: 0.15; }
+      100% { transform: translateY(-5vh) scale(1.2); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="relative">
+
+  <!-- Floating space dust background -->
+  <div class="space-dust">
+    <div class="dust-particle" style="width: 2px; height: 2px; left: 15%; animation-delay: 0s; animation-duration: 25s;"></div>
+    <div class="dust-particle" style="width: 3px; height: 3px; left: 45%; animation-delay: 4s; animation-duration: 18s;"></div>
+    <div class="dust-particle" style="width: 2px; height: 2px; left: 75%; animation-delay: 8s; animation-duration: 22s;"></div>
+    <div class="dust-particle" style="width: 4px; height: 4px; left: 85%; animation-delay: 2s; animation-duration: 15s;"></div>
+  </div>
+
+  <!-- Header Navigation -->
+  <header class="p-5 glass rounded-none border-b border-white/5 flex justify-between items-center z-50 shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/15">
+        SF
+      </div>
+      <div>
+        <h1 class="text-xs font-black uppercase tracking-[0.2em] text-white/40 leading-none">awesomejoses11-code</h1>
+        <p class="text-sm font-black text-[#FFD700] mt-1">StackFolio Data</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="mailto:awesomejoses11@gmail.com" class="hidden md:flex items-center gap-2 bg-white/5 hover:bg-white/10 border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-[#FFD700] transition-all">
+        <i class="fa-solid fa-envelope"></i>
+        <span>Contact & Collaborate</span>
+      </a>
+
+      <button onclick="copyRepoLink()" class="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 border-white/10 px-4 py-2 rounded-xl text-xs font-mono text-slate-300 transition-all">
+        <i class="fa-brands fa-github text-[#FFD700]"></i>
+        <span>awesomejoses11-code/stackfolio-data</span>
+      </button>
+
+      <div class="text-xs font-mono text-slate-400 bg-emerald-500/10 border-emerald-500/20 px-3.5 py-1.5 rounded-xl flex items-center gap-2 font-bold">
+        <span class="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync Active
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="max-w-4xl w-full mx-auto text-center px-6 pt-16 pb-8 space-y-6">
+    <div class="inline-flex items-center gap-2 bg-yellow-500/5 border-yellow-500/15 px-4 py-2 rounded-full text-xs font-bold text-yellow-500">
+      <i class="fa-solid fa-sparkles animate-pulse"></i> Static Browser Utilities Suite
+    </div>
+
+    <h2 class="text-4xl sm:text-6xl font-black uppercase tracking-tight leading-none">
+      Clean tools that <span class="text-[#00D2FF]">run instantly</span>.
+    </h2>
+
+    <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+      A curated workspace of standalone browser utilities. No logins, no backend, no bloat. Just fast, reliable tools that work everywhere.
+    </p>
+  </section>
+
+  <!-- Main Utility Cards Grid -->
+  <main class="max-w-6xl w-full mx-auto px-6 pb-12 grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+
+    <!-- Card 1: Live HTML Previewer -->
+    <a href="preview.html" class="glass p-6 rounded-[2rem] flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-yellow-500/10 border-yellow-500/20 flex items-center justify-center text-[#FFD700] text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-code"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            Live HTML Previewer
+            <span class="text-[10px] bg-yellow-500/10 text-yellow-500 border border-yellow-500/20 px-2 py-0.5 rounded-md font-black">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Real-time sandboxed editor for HTML, CSS, and JS. Test snippets instantly with responsive layouts, console logs, and export options.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">preview.html</span>
+        <span class="text-xs font-bold text-yellow-500 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Launch Tool <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Card 2: Clipboard & Doc Converter -->
+    <a href="clipboard assistant.html" class="glass p-6 rounded-[2rem] flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-500/10 border-cyan-500/20 flex items-center justify-center text-[#00D2FF] text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-clipboard"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            Clipboard Studio
+            <span class="text-[10px] bg-cyan-500/10 text-[#00D2FF] border-cyan-500/20 px-2 py-0.5 rounded-md font-black">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Process large text blocks, clean formatting, change case/whitespace, and export directly to PDF or DOCX. All client-side.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">clipboard assistant.html</span>
+        <span class="text-xs font-bold text-[#00D2FF] flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Open Studio <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Card 3: QR Code Generator -->
+    <a href="qr-code-generator.html" class="glass p-6 rounded-[2rem] flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/10 border-emerald-500/20 flex items-center justify-center text-emerald-400 text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            QR Generator Studio
+            <span class="text-[10px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-2 py-0.5 rounded-md font-black">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Generate vector QR codes with custom shapes, colors, and transparent logo overlays. Perfect for branding and business use.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">qr-code-generator.html</span>
+        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Generate QR <i class="fa-solid fa-arrow-right text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <!-- Card 4: Neon Fury Game - NEW -->
+    <a href="https://stackfolio-data.vercel.app/Neon%20Fury.html" target="_blank" class="glass p-6 rounded-[2rem] flex-col justify-between space-y-6 group border-purple-500/20">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-purple-500/10 border-purple-500/20 flex items-center justify-center text-purple-400 text-xl group-hover:scale-110 transition-transform duration-300">
+          <i class="fa-solid fa-gamepad"></i>
+        </div>
+        <div>
+          <h3 class="text-lg font-black text-white flex items-center justify-between">
+            Neon Fury
+            <span class="text-[10px] bg-purple-500/10 text-purple-400 border-purple-500/20 px-2 py-0.5 rounded-md font-black">GAME</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2 leading-relaxed">
+            Cyberpunk endless runner set in Neon Fury city. Dodge obstacles, collect points, and survive the neon chaos. WASD + Space to play.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[11px] font-mono text-slate-500">Neon Fury.html</span>
+        <span class="text-xs font-bold text-purple-400 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+          Play Now <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
+        </span>
+      </div>
+    </a>
+
+  </main>
+
+  <!-- Support & Collaboration Section -->
+  <section class="max-w-md w-full mx-auto px-6 pb-12">
+    <div class="glass p-6 rounded-[2rem] border-white/5 bg-[#0B1230]/30 flex-col items-center text-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-yellow-500/10 border-yellow-500/15 flex items-center justify-center text-[#FFD700]">
+        <i class="fa-solid fa-envelope-open-text"></i>
+      </div>
+      <div>
+        <h4 class="text-sm font-bold text-white uppercase tracking-wider">Support & Collaboration</h4>
+        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+          Have ideas, feature requests, or want to build new utilities together?
+        </p>
+      </div>
+      <a href="mailto:awesomejoses11@gmail.com" class="text-xs font-mono text-[#00D2FF] hover:underline font-bold tracking-wide">
+        awesomejoses11@gmail.com
+      </a>
+    </div>
+  </section>
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-6 right-6 bg-[#0B1230] border-yellow-500/20 px-5 py-3.5 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 text-slate-300 text-xs shadow-2xl z-50">
+    <div class="w-6 h-6 rounded-full bg-emerald-500/10 border-emerald-500/20 flex items-center justify-center text-emerald-400">
+      <i class="fa-solid fa-circle-check" id="toast-icon"></i>
+    </div>
+    <span id="toast-text">Configuration saved</span>
+  </div>
+
+  <!-- Footer -->
+  <footer class="p-8 text-center text-[10px] text-slate-600 uppercase tracking-widest font-bold border-t border-white/5 shrink-0">
+    © 2026 awesomejoses11-code • StackFolio Utilities Platform
+  </footer>
+
+  <script>
+    function copyRepoLink() {
+      const text = "awesomejoses11-code/stackfolio-data";
+
+      const tempTextarea = document.createElement("textarea");
+      tempTextarea.value = text;
+      document.body.appendChild(tempTextarea);
+      tempTextarea.select();
+
+      try {
+        const success = document.execCommand('copy');
+        if (success) {
+          showToast('Repository link copied!');
+        } else {
+          showToast('Copy failed', 'triangle-exclamation');
+        }
+      } catch(e) {
+        showToast('Error copying link', 'triangle-exclamation');
+      }
+
+      document.body.removeChild(tempTextarea);
+    }
+
+    function showToast(text, iconClass = 'circle-check') {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      const textSpan = document.getElementById('toast-text');
+
+      icon.className = `fa-solid fa-${iconClass}`;
+      textSpan.innerText = text;
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      clearTimeout(window.toastTimeout);
+      window.toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
