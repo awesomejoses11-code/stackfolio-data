@@ -1,0 +1,1928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>NEON FURY — Ultimate Combat Arena</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js"
+  }
+}
+</script>
+
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html, body { width:100%; height:100%; }
+  body {
+    font-family:'Rajdhani', sans-serif;
+    background:#020208;
+    overflow:hidden; user-select:none;
+    color:#e0e0ff;
+  }
+  .arcade-font { font-family:'Orbitron', sans-serif; }
+  .mono-font   { font-family:'Space Mono', monospace; }
+
+  #gameCanvas { position:absolute; inset:0; width:100%; height:100%; display:block; z-index:1; }
+  .screen { position:absolute; inset:0; z-index:20; transition:opacity .25s; }
+  .screen.hidden { display:none !important; }
+
+  .scanlines{
+    position:absolute; inset:0;
+    background:linear-gradient(rgba(0,0,0,0) 50%, rgba(0,0,0,.15) 50%);
+    background-size:100% 4px;
+    pointer-events:none; z-index:40;
+    mix-blend-mode:overlay;
+  }
+
+  .panel{
+    background:rgba(10,14,35,.88);
+    border:1px solid #1e90ff;
+    border-radius:12px;
+    backdrop-filter:blur(12px);
+    box-shadow:0 8px 32px rgba(30,144,255,.15);
+  }
+  .panel-dark{
+    background:rgba(5,7,18,.94);
+    border:1px solid rgba(30,144,255,.25);
+    border-radius:14px;
+    backdrop-filter:blur(10px);
+  }
+
+  h1 { font-size:clamp(2rem, 8vw, 4.5rem); font-weight:900; letter-spacing:-2px; text-transform:uppercase; }
+  h2 { font-size:clamp(1rem, 4vw, 1.8rem); font-weight:bold; letter-spacing:1px; }
+  h3 { font-size:clamp(0.9rem, 3.5vw, 1.4rem); font-weight:bold; }
+
+  button{ transition:all .18s; font-weight:600; cursor:pointer; font-family:inherit; font-size:clamp(12px, 2vw, 16px); }
+  button:hover:not(:disabled){ transform:translateY(-2px); box-shadow:0 4px 16px rgba(30,144,255,.4); }
+  button:active:not(:disabled){ transform:translateY(0); }
+  button:disabled{ opacity:.45; cursor:not-allowed; }
+
+  .hud-bar{ height:clamp(8px, 1.5vw, 14px); background:#0c0d1a; border:1px solid #1e3a5f; border-radius:6px; overflow:hidden; }
+  .hud-bar-fill{ height:100%; transition:width .15s ease; }
+  .low-hp { animation: hpFlash 0.4s infinite alternate; }
+  @keyframes hpFlash { from { background: #ff3344; box-shadow: 0 0 12px #ff3344; } to { background: #ffaa00; box-shadow: 0 0 20px #ff3344; } }
+
+  .glow-blue  { color:#1e90ff; text-shadow:0 0 12px #1e90ff, 0 0 24px rgba(30,144,255,0.4); }
+  .glow-pink  { color:#ff00ff; text-shadow:0 0 12px #ff00ff, 0 0 24px rgba(255,0,255,0.4); }
+  .glow-green { color:#00ff88; text-shadow:0 0 12px #00ff88; }
+  .glow-amber { color:#ffaa00; text-shadow:0 0 12px #ffaa00; }
+  .glow-red   { color:#ff4d4d; text-shadow:0 0 12px #ff4d4d; }
+
+  .combat-log{
+    position:absolute; bottom:140px; left:14px;
+    width:220px; max-height:80px; overflow-y:auto;
+    z-index:15; padding:6px;
+    border-radius:8px;
+    border: 1px solid rgba(30,144,255,0.15);
+  }
+  .log-entry{
+    font-size:clamp(7px, 1.5vw, 12px); font-family:'Space Mono', monospace;
+    padding:2px 6px; margin:1px 0; border-left:3px solid;
+    border-radius:0 4px 4px 0;
+    animation:slideIn .2s ease;
+  }
+  .log-hit   { color:#ff4d4d; border-color:#ff4d4d; background:rgba(255,77,77,.1); }
+  .log-block { color:#00ff88; border-color:#00ff88; background:rgba(0,255,136,.1); }
+  .log-crit  { color:#ffaa00; border-color:#ffaa00; background:rgba(255,170,0,.1); }
+  .log-info  { color:#1e90ff; border-color:#1e90ff; background:rgba(30,144,255,.1); }
+  .log-move  { color:#c084fc; border-color:#c084fc; background:rgba(192,132,252,.1); }
+
+  @keyframes slideIn { from { transform:translateY(10px); opacity:0; } to { transform:translateY(0); opacity:1; } }
+  @keyframes shake   { 0%,100%{transform:translate(0,0);} 25%{transform:translate(-6px,3px);} 50%{transform:translate(6px,-3px);} 75%{transform:translate(-4px,4px);} }
+  .shake { animation:shake .35s ease; }
+
+  .upgrade-card{ transition:all .2s; border-left:3px solid transparent; }
+  .upgrade-card:hover{ border-left-color:#1e90ff; transform:translateX(6px); }
+
+  .username-input{
+    background:rgba(10,14,35,.9);
+    border:2px solid #1e90ff; color:#1e90ff;
+    border-radius:6px; padding:14px;
+    font-family:'Orbitron', sans-serif;
+    font-weight:bold; text-transform:uppercase;
+    transition:all .2s;
+  }
+  .username-input:focus{ outline:none; border-color:#ff00ff; box-shadow:0 0 20px #1e90ff; }
+  .username-input::placeholder{ color:rgba(30,144,255,.35); }
+
+  .diff-card{
+    transition:all .2s; cursor:pointer;
+    border:2px solid rgba(255,255,255,.1);
+    position:relative; overflow:hidden;
+  }
+  .diff-card:hover{ transform:translateY(-6px); }
+  .diff-card.selected{ border-color:currentColor; box-shadow:0 0 28px currentColor; }
+  .diff-card .corner{
+    position:absolute; top:-30px; right:-30px;
+    width:80px; height:80px;
+    background:currentColor; opacity:.15;
+    transform:rotate(45deg);
+  }
+
+  .ctrl-btn{
+    width:clamp(48px, 10vw, 56px); height:clamp(48px, 10vw, 56px); border-radius:50%;
+    background:rgba(10,14,35,.85);
+    border:1.5px solid rgba(30,144,255,.4);
+    color:#e0e0ff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:clamp(16px, 3vw, 20px); font-weight:bold;
+    transition:all .12s;
+    touch-action:none;
+  }
+  .ctrl-btn:hover{ background:rgba(30,144,255,.2); border-color:#1e90ff; box-shadow:0 0 16px rgba(30,144,255,.55); }
+  .ctrl-btn:active, .ctrl-btn.active{
+    background:rgba(30,144,255,.4);
+    border-color:#00ffff; color:#fff;
+    transform:scale(.92);
+    box-shadow:0 0 22px #1e90ff;
+  }
+  .ctrl-btn.combat{ width:clamp(58px, 12vw, 66px); height:clamp(58px, 12vw, 66px); font-size:clamp(18px, 3.5vw, 22px); }
+  .ctrl-btn.attack{ border-color:rgba(255,77,77,.55); }
+  .ctrl-btn.defend{ border-color:rgba(56,189,248,.55); }
+  .ctrl-btn.special{ border-color:rgba(255,170,0,.55); }
+  .ctrl-btn.dash{ border-color:rgba(192,132,252,.55); }
+
+  .cooldown-ring{
+    position:absolute; inset:0; border-radius:50%;
+    pointer-events:none;
+    background:conic-gradient(rgba(0,0,0,.75) var(--cd, 0%), transparent 0);
+  }
+
+  .enemy-badge {
+    position:absolute; top:24px; right:24px;
+    background:rgba(0,0,0,.8); padding:8px 16px;
+    border:1px solid rgba(255,0,255,0.2);
+    border-radius:6px; font-size:clamp(10px, 1.5vw, 14px);
+    z-index:15;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+  .pulse { animation:pulse 2s infinite; }
+</style>
+</head>
+<body>
+<canvas id="gameCanvas"></canvas>
+<div class="scanlines"></div>
+
+<!-- ===================== UI SCREENS ===================== -->
+<div id="usernameScreen" class="screen flex items-center justify-center p-4 sm:p-8" style="background:linear-gradient(135deg,#030105,#070212);">
+  <div class="panel p-6 sm:p-12 max-w-md w-full text-center" style="background:linear-gradient(135deg, rgba(10,14,35,0.95), rgba(5,7,18,0.95));">
+    <i class="fa-solid fa-user-astronaut glow-blue block mb-4" style="animation:pulse 2s ease-in-out infinite; font-size:clamp(32px,8vw,48px);"></i>
+    <h1 class="arcade-font glow-blue mb-2" style="font-size:clamp(22px,6vw,36px); letter-spacing:2px;">NEON FURY</h1>
+    <p style="color:#999; margin-bottom:20px; font-size:clamp(11px,2.5vw,13px); letter-spacing:1px; text-transform:uppercase;">ENTER YOUR CALL SIGN</p>
+    <input type="text" id="usernameInput" class="username-input w-full mb-6" style="font-size:clamp(12px,2.5vw,14px); padding:clamp(10px,2vw,14px);" placeholder="PILOT NAME" maxlength="20">
+    <button id="btnSetUser" style="width:100%; background:linear-gradient(to right,#06b6d4,#4f46e5); color:#000; border:none; font-weight:bold; padding:clamp(12px,2.5vw,14px); border-radius:8px; text-transform:uppercase; font-size:clamp(12px,2.5vw,14px); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(to right,#06b6d4,#4f46e5)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.filter='brightness(1)';">
+      <i class="fa-solid fa-play"></i> START MISSION
+    </button>
+  </div>
+</div>
+
+<div id="menuScreen" class="screen hidden flex flex-col justify-between p-4 sm:p-8" style="background:linear-gradient(135deg,#030208,#04040c); gap:16px;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+    <div style="display:flex; align-items:center; gap:12px; min-width:0;">
+      <div style="width:clamp(36px,8vw,48px); height:clamp(36px,8vw,48px); border-radius:8px; background:linear-gradient(to bottom right,#06b6d4,#4f46e5); display:flex; align-items:center; justify-content:center; flex-shrink:0;"><i class="fa-solid fa-user" style="color:#fff; font-size:clamp(18px,4vw,24px);"></i></div>
+      <div style="min-width:0;">
+        <h3 style="color:#fff; font-weight:bold; text-transform:uppercase; font-size:clamp(11px,2vw,13px);" id="usernameDisplay">PILOT</h3>
+        <p id="playerStats" style="color:#06b6d4; font-size:clamp(9px,1.5vw,11px); font-family:'Space Mono',monospace; margin:0;">Wins: 0 | Losses: 0</p>
+      </div>
+    </div>
+    <div style="text-align:right;">
+      <div style="color:#888; font-size:clamp(9px,1.5vw,11px); margin-bottom:4px;">CREDITS</div>
+      <div id="menuCredits" style="color:#ffaa00; font-weight:bold; font-size:clamp(13px,3vw,18px); font-family:'Space Mono',monospace;"><i class="fa-solid fa-coins" style="margin-right:4px;"></i>2000</div>
+    </div>
+    <button onclick="resetUsername()" title="Logout" style="background:none; border:none; color:#888; cursor:pointer; font-size:clamp(14px,3vw,18px); padding:4px; transition:color 0.2s;" onmouseover="this.style.color='#aaa';" onmouseout="this.style.color='#888';"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+  </div>
+  
+  <div class="text-center">
+    <h1 class="arcade-font text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-pink-500 to-indigo-600" style="font-size:clamp(24px,7vw,48px); margin:0; letter-spacing:2px;">NEON FURY</h1>
+    <p style="color:#999; font-size:clamp(12px,2.5vw,14px); margin:16px auto; max-width:90%; line-height:1.6;">Pilot advanced humanoid gladiator combat units. Defeat tactical foes in hyper-responsive 3D vector spaces.</p>
+    <div style="display:flex; gap:clamp(8px,2vw,12px); justify-content:center; flex-wrap:wrap; margin-top:20px;">
+      <button onclick="goDifficulty()" style="padding:clamp(10px,2vw,14px) clamp(12px,2.5vw,16px); background:linear-gradient(to right,#06b6d4,#4f46e5); color:#000; border:none; font-weight:bold; border-radius:8px; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:clamp(11px,2vw,13px); transition:all 0.2s; white-space:nowrap;" onmouseover="this.style.filter='brightness(1.1)';" onmouseout="this.style.filter='brightness(1)';"><i class="fa-solid fa-gamepad"></i> ARENA</button>
+      <button onclick="goShop()" style="padding:clamp(10px,2vw,14px) clamp(12px,2.5vw,16px); background:#222; color:#ddd; border:1.5px solid #444; font-weight:bold; border-radius:8px; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:clamp(11px,2vw,13px); transition:all 0.2s; white-space:nowrap;" onmouseover="this.style.background='#333'; this.style.borderColor='#666';" onmouseout="this.style.background='#222'; this.style.borderColor='#444';"><i class="fa-solid fa-shield-halved"></i> SHOP</button>
+      <button onclick="goHowTo()" style="padding:clamp(10px,2vw,14px) clamp(12px,2.5vw,16px); background:#222; color:#ddd; border:1.5px solid #444; font-weight:bold; border-radius:8px; text-transform:uppercase; cursor:pointer; display:flex; align-items:center; gap:8px; font-size:clamp(11px,2vw,13px); transition:all 0.2s; white-space:nowrap;" onmouseover="this.style.background='#333'; this.style.borderColor='#666';" onmouseout="this.style.background='#222'; this.style.borderColor='#444';"><i class="fa-solid fa-circle-info"></i> HELP</button>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:clamp(8px,2vw,12px); text-align:center; font-size:clamp(10px,1.5vw,12px); margin-top:16px;">
+    <div class="panel" style="padding:clamp(8px,2vw,12px); display:flex; flex-direction:column; gap:6px;">
+      <div style="color:#888; font-size:clamp(9px,1.3vw,11px);">⚡ ATK</div>
+      <div class="glow-pink" style="font-weight:bold; font-size:clamp(14px,3vw,18px);" id="statPower">10</div>
+    </div>
+    <div class="panel" style="padding:clamp(8px,2vw,12px); display:flex; flex-direction:column; gap:6px;">
+      <div style="color:#888; font-size:clamp(9px,1.3vw,11px);">🛡️ DEF</div>
+      <div class="glow-blue" style="font-weight:bold; font-size:clamp(14px,3vw,18px);" id="statArmor">0%</div>
+    </div>
+    <div class="panel" style="padding:clamp(8px,2vw,12px); display:flex; flex-direction:column; gap:6px;">
+      <div style="color:#888; font-size:clamp(9px,1.3vw,11px);">⚙️ SPD</div>
+      <div class="glow-green" style="font-weight:bold; font-size:clamp(14px,3vw,18px);" id="statSpeed">1.0×</div>
+    </div>
+    <div class="panel" style="padding:clamp(8px,2vw,12px); display:flex; flex-direction:column; gap:6px;">
+      <div style="color:#888; font-size:clamp(9px,1.3vw,11px);">❤️ HP</div>
+      <div style="color:#ff6b6b; font-weight:bold; font-size:clamp(14px,3vw,18px);" id="statHealth">100</div>
+    </div>
+  </div>
+</div>
+
+<div id="difficultyScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+  <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
+    <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
+    <h2 class="arcade-font text-cyan-400">SELECT DIFFICULTY</h2>
+    <div class="w-20"></div>
+  </div>
+  <div id="difficultyGrid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4 flex-1 overflow-y-auto pr-2 pb-4"></div>
+  <div class="text-center pt-4">
+    <button id="proceedBtn" disabled onclick="goArena()" class="px-10 py-3 bg-gradient-to-r from-cyan-500 to-indigo-600 text-black font-bold rounded-lg uppercase">SELECT LEVEL</button>
+  </div>
+</div>
+
+<div id="arenaScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+  <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
+    <button onclick="goDifficulty()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
+    <h2 class="arcade-font text-cyan-400">SELECT LEVEL · <span id="arenaDiffLabel" class="text-pink-400">NOVICE</span></h2>
+    <div class="w-20"></div>
+  </div>
+  <div id="arenaList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 overflow-y-auto pr-2 pb-4"></div>
+</div>
+
+<div id="shopScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+  <div class="flex justify-between items-center border-b border-gray-900 pb-3 mb-4">
+    <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
+    <h2 class="arcade-font text-cyan-400">ARMORY LAB</h2>
+    <span class="text-amber-400 font-bold mono-font"><i class="fa-solid fa-coins mr-1"></i><span id="creditAmount">2000</span></span>
+  </div>
+  <div class="flex gap-4 border-b border-gray-900 mb-4">
+    <button onclick="switchTab('stats')" id="tab-stats" class="pb-2 text-cyan-400 border-b-2 border-cyan-400 font-bold">CORE UPGRADES</button>
+    <button onclick="switchTab('gear')" id="tab-gear" class="pb-2 text-white/60 font-bold">MARKET GEAR</button>
+  </div>
+  <div id="statsTab" class="flex-1 overflow-y-auto space-y-3 pr-2"></div>
+  <div id="gearTab" class="hidden flex-1 overflow-y-auto pr-2"><div id="gearGrid" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div></div>
+</div>
+
+<div id="howToScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+  <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
+    <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
+    <h2 class="arcade-font text-cyan-400">HOW TO PLAY</h2>
+    <div class="w-20"></div>
+  </div>
+  <div class="flex-1 overflow-y-auto max-w-3xl mx-auto space-y-4 text-sm">
+    <div>
+      <h3 class="font-bold mb-2 text-cyan-400">🎮 CONTROLS</h3>
+      <p><b>Movement:</b> Arrow Keys / WASD<br><b>Jump:</b> Space/Up Arrow<br><b>Attack:</b> J Key<br><b>Defend:</b> K Key<br><b>Charge:</b> Hold L Key<br><b>Dash:</b> Shift Key</p>
+    </div>
+  </div>
+</div>
+
+<div id="gameScreen" class="screen hidden flex flex-col" style="background:transparent;">
+  <div id="enemyBadge" class="enemy-badge hidden"></div>
+  <div class="relative z-10 p-3 bg-black/50 border-b border-white/10">
+    <div class="flex gap-4 items-center mb-3">
+      <div class="flex-1"><div class="flex justify-between text-xs mono-font mb-1"><span class="text-cyan-400 font-bold" id="playerNameLabel">PILOT</span><span id="playerHPText" class="text-cyan-300 font-bold">100/100</span></div><div class="hud-bar"><div id="playerHPBar" class="hud-bar-fill bg-gradient-to-r from-emerald-500 to-cyan-400" style="width:100%"></div></div></div>
+      <div class="text-center px-4"><div class="arcade-font text-xl text-cyan-400 font-bold leading-none" id="levelText">LEVEL 1</div><div id="timerText" class="text-[10px] text-gray-400 mono-font mt-1">00:00</div><div id="diffBadge" class="text-[10px] mono-font mt-1 font-bold">NOVICE</div></div>
+      <div class="flex-1"><div class="flex justify-between text-xs mono-font mb-1"><span id="opponentHPText" class="text-pink-300 font-bold">100/100</span><span class="text-pink-400 font-bold" id="opponentNameLabel">OPPONENT</span></div><div class="hud-bar"><div id="opponentHPBar" class="hud-bar-fill bg-gradient-to-l from-red-500 to-pink-500 ml-auto" style="width:100%"></div></div></div>
+    </div>
+    <div style="display:flex; gap:16px; align-items:center; padding:0 20px;">
+      <div style="flex:1; max-width:200px;">
+        <div style="font-size:clamp(9px,1.2vw,11px); color:#9966ff; font-weight:bold; text-transform:uppercase; margin-bottom:4px;">⭐ KICK CHARGE</div>
+        <div class="hud-bar"><div id="kickBar" class="hud-bar-fill bg-gradient-to-r from-purple-500 to-pink-500" style="width:0%"></div></div>
+        <div style="font-size:clamp(8px,1vw,10px); color:#9966ff; margin-top:4px; text-align:center; font-weight:600;" id="kickInfo">Ready</div>
+      </div>
+    </div>
+  </div>
+  <div class="flex-1 relative">
+    <button id="btnPause" class="absolute top-3 left-3 z-20 ctrl-btn" style="width:42px;height:42px;"><i class="fa-solid fa-pause"></i></button>
+    <div class="combat-log panel-dark" id="combatLog"></div>
+  </div>
+  <div class="relative z-10 p-3 bg-gradient-to-t from-black/90 to-black/30 border-t border-white/10 flex justify-between items-end gap-4">
+    <div class="flex flex-col items-center gap-1"><button id="btnJump" class="ctrl-btn"><i class="fa-solid fa-arrow-up"></i></button><div class="flex gap-1"><button id="btnLeft" class="ctrl-btn"><i class="fa-solid fa-arrow-left"></i></button><button id="btnDash" class="ctrl-btn dash relative overflow-hidden"><i class="fa-solid fa-forward"></i><div id="dashCDRing" class="cooldown-ring" style="--cd:0%"></div></button><button id="btnRight" class="ctrl-btn"><i class="fa-solid fa-arrow-right"></i></button></div></div>
+    <div class="flex gap-2"><button id="btnAttack" class="ctrl-btn combat attack"><i class="fa-solid fa-fist-raised"></i></button><button id="btnDefend" class="ctrl-btn combat defend"><i class="fa-solid fa-shield"></i></button><button id="btnKick" class="ctrl-btn combat special"><i class="fa-solid fa-shoe-prints"></i></button></div>
+  </div>
+</div>
+
+<div id="pauseOverlay" class="screen hidden flex items-center justify-center" style="background:rgba(0,0,0,.85); z-index:50;">
+  <div class="panel p-12 text-center" style="background: linear-gradient(135deg, rgba(10,14,35,0.95), rgba(5,7,18,0.95)); max-width: 300px;">
+    <h2 class="arcade-font glow-blue" style="font-size:clamp(24px,4vw,36px); margin-bottom:20px; letter-spacing:2px;">⏸️ PAUSED</h2>
+    <button id="btnResume" style="width:100%; margin-bottom:12px; padding:14px; background:linear-gradient(135deg,#00d9ff,#1e90ff); color:#000; border:none; border-radius:8px; font-weight:bold; font-size:clamp(12px,2vw,14px); cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,217,255,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,217,255,0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,217,255,0.4)';">▶️ RESUME</button>
+    <button id="btnQuitMatch" style="width:100%; padding:14px; background:rgba(100,50,50,0.6); color:#fff; border:1.5px solid rgba(200,100,100,0.4); border-radius:8px; font-weight:bold; font-size:clamp(12px,2vw,14px); cursor:pointer; text-transform:uppercase; transition:all 0.2s;" onmouseover="this.style.background='rgba(150,60,60,0.8)'; this.style.borderColor='rgba(200,100,100,0.7)';" onmouseout="this.style.background='rgba(100,50,50,0.6)'; this.style.borderColor='rgba(200,100,100,0.4)';">❌ QUIT MATCH</button>
+  </div>
+</div>
+<div id="resultsScreen" class="screen hidden flex items-center justify-center p-8" style="background:linear-gradient(135deg,#020104,#05020c);">
+  <div class="panel p-12 max-w-md w-full text-center" style="background: linear-gradient(135deg, rgba(10,14,35,0.95), rgba(5,7,18,0.95));">
+    <h2 class="arcade-font text-4xl font-bold mb-8" id="resultTitle" style="letter-spacing: 2px;">VICTORY!</h2>
+    
+    <div style="space-y: 4px; mb-8; display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+      <div class="panel" style="background: rgba(0,0,0,0.4); padding: 16px; border: 1px solid rgba(255,77,77,0.3); border-radius: 8px;">
+        <div style="font-size:clamp(10px,1.3vw,12px); color:#888; text-transform:uppercase; margin-bottom:6px;">⚡ Damage Dealt</div>
+        <div class="glow-pink" style="font-size:clamp(18px,2.5vw,24px); font-weight:bold;" id="resultDmg">0</div>
+      </div>
+      <div class="panel" style="background: rgba(0,0,0,0.4); padding: 16px; border: 1px solid rgba(30,144,255,0.3); border-radius: 8px;">
+        <div style="font-size:clamp(10px,1.3vw,12px); color:#888; text-transform:uppercase; margin-bottom:6px;">⏱️ Time</div>
+        <div class="glow-blue" style="font-size:clamp(18px,2.5vw,24px); font-weight:bold;" id="resultTime">0:00</div>
+      </div>
+    </div>
+
+    <div style="background: rgba(255,170,0,0.1); padding: 16px; border: 1.5px solid rgba(255,170,0,0.4); border-radius: 10px; margin-bottom: 16px;">
+      <div style="font-size:clamp(10px,1.3vw,12px); color:#888; text-transform:uppercase; margin-bottom:8px;">💰 Credits Recovered</div>
+      <div class="glow-amber" style="font-size:clamp(24px,3vw,32px); font-weight:bold;" id="resultReward">+0</div>
+      <div style="font-size:clamp(9px,1.2vw,11px); color:#999; margin-top:8px;" id="resultDiffBonus"></div>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <div style="display:flex; gap:12px;">
+        <button id="btnResultMenu" class="flex-1" style="padding:14px; background:rgba(100,100,120,0.5); color:#fff; border:1.5px solid rgba(100,100,150,0.5); border-radius:8px; font-weight:bold; font-size:clamp(11px,1.5vw,13px); cursor:pointer; text-transform:uppercase; transition:all 0.2s;" onmouseover="this.style.background='rgba(100,100,150,0.7)'; this.style.borderColor='rgba(100,100,200,0.8)';" onmouseout="this.style.background='rgba(100,100,120,0.5)'; this.style.borderColor='rgba(100,100,150,0.5)';">📋 MENU</button>
+        <button id="btnResultRematch" class="flex-1" style="padding:14px; background:linear-gradient(135deg,#00d9ff,#1e90ff); color:#000; border:none; border-radius:8px; font-weight:bold; font-size:clamp(11px,1.5vw,13px); cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,217,255,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,217,255,0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,217,255,0.4)';">⚡ REMATCH</button>
+      </div>
+      <button id="btnNextMatch" class="w-full" style="padding:14px; background:linear-gradient(135deg,#22c55e,#16a34a); color:#fff; border:none; border-radius:8px; font-weight:bold; font-size:clamp(11px,1.5vw,13px); cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 12px rgba(34,197,94,0.4);" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(34,197,94,0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(34,197,94,0.4)';">🎯 NEXT OPPONENT</button>
+    </div>
+  </div>
+</div>
+
+<div id="storyScreen" class="screen hidden flex items-center justify-center p-4 sm:p-8" style="background:linear-gradient(135deg,#0a0a1a,#050520);">
+  <div class="panel p-6 sm:p-8 max-w-lg w-full text-center" style="background: linear-gradient(135deg, rgba(10,14,35,0.95), rgba(5,7,18,0.95)); overflow-x: hidden;">
+    <h2 class="arcade-font font-bold mb-4 glow-blue" style="font-size:clamp(20px,5vw,32px); letter-spacing:1px; word-wrap:break-word;" id="storyTitle">CHROME GUARDIAN</h2>
+    <p style="color:#999; font-size:clamp(13px,3vw,16px); line-height:1.5; margin-bottom:20px; word-wrap:break-word;" id="storyText">Test your reflexes against simple drones.</p>
+    
+    <div style="background:rgba(0,0,0,0.6); padding:16px; border-radius:10px; border:1.5px solid rgba(30,144,255,0.3); margin-bottom:20px; overflow-x: hidden;">
+      <div style="font-size:clamp(10px,2vw,12px); color:#00d9ff; font-family:'Space Mono',monospace; margin-bottom:12px; text-transform:uppercase; font-weight:bold;">📊 OPPONENT SPECS</div>
+      
+      <div style="display:flex; flex-direction:column; gap:12px; font-weight:bold; color:#ff69b4;">
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <span style="font-size:clamp(12px,2.5vw,14px);">⚡ CORE:</span>
+          <span id="storyHP" style="font-size:clamp(16px,3vw,20px); color:#ff6b6b;">100</span>
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <span style="font-size:clamp(12px,2.5vw,14px);">🎯 THREAT:</span>
+          <span id="storyThreat" style="font-size:clamp(16px,3vw,20px); color:#ffaa00;">●</span>
+        </div>
+      </div>
+    </div>
+
+    <button id="btnStartMission" style="width:100%; padding:14px; background:linear-gradient(135deg,#00d9ff,#1e90ff); color:#000; border:none; border-radius:10px; font-weight:bold; font-size:clamp(13px,3vw,16px); cursor:pointer; text-transform:uppercase; transition:all 0.2s; box-shadow:0 4px 12px rgba(0,217,255,0.4); white-space:nowrap;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px rgba(0,217,255,0.6)';" onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px rgba(0,217,255,0.4)';">⚔️ ENGAGE</button>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+class GameSave {
+  constructor(){ this.load(); }
+  load(){
+    const raw = localStorage.getItem('neonFury_player_v4');
+    this.player = raw ? JSON.parse(raw) : this.defaultPlayer();
+    const def = this.defaultPlayer();
+    for (const k of Object.keys(def)) if (this.player[k]===undefined) this.player[k]=def[k];
+    if (!this.player.stats) this.player.stats=def.stats;
+    if (!this.player.equipped) this.player.equipped=def.equipped;
+    if (!this.player.purchasedGear) this.player.purchasedGear=def.purchasedGear;
+  }
+  defaultPlayer(){
+    return {
+      username:'', credits:2000, wins:0, losses:0, winStreak:0,
+      stats:{power:1,armor:1,speed:1,health:1},
+      equipped:{weapon:null,armor:null,movement:null},
+      purchasedGear:[], legendBeaten:false
+    };
+  }
+  save(){ localStorage.setItem('neonFury_player_v4', JSON.stringify(this.player)); }
+  setUsername(name){ this.player.username = name.toUpperCase().substring(0,20); this.save(); }
+  addCredits(n){ this.player.credits += n; this.save(); }
+  spendCredits(n){ if(this.player.credits<n) return false; this.player.credits-=n; this.save(); return true; }
+  addWin(r){ this.player.wins++; this.player.winStreak++; this.addCredits(r); }
+  addLoss(consolationCredits = 0){ this.player.losses++; this.player.winStreak = 0; if(consolationCredits > 0) this.addCredits(consolationCredits); else this.save(); }
+  upgradeStat(stat){ this.player.stats[stat]++; this.save(); }
+}
+const gameSave = new GameSave();
+
+const ENEMY_TYPES = {
+  striker: { name: 'STRIKER MK.I', icon: 'fa-fire', aggression: 0.8, defense: 0.3, strategy: 'aggressive' },
+  defender: { name: 'DEFENDER MK.IV', icon: 'fa-shield', aggression: 0.3, defense: 0.8, strategy: 'defensive' },
+  balanced: { name: 'CORE HYBRID', icon: 'fa-dumbbell', aggression: 0.5, defense: 0.5, strategy: 'balanced' },
+  tactical: { name: 'SENTINEL PRIME', icon: 'fa-chess', aggression: 0.6, defense: 0.6, strategy: 'tactical' },
+  legend: { name: 'NEXUS OVERLORD', icon: 'fa-crown', aggression: 0.9, defense: 0.9, strategy: 'legend' }
+};
+
+const DIFFICULTIES = {
+  novice:{key:'novice',label:'NOVICE',icon:'shield',desc:'Easy configuration',color:'#34d399',rewardMult:1.0,hpMult:0.8,aiReact:1.2,aiDmg:0.7},
+  amateur:{key:'amateur',label:'AMATEUR',icon:'dumbbell',desc:'Standard deployment',color:'#22d3ee',rewardMult:1.5,hpMult:1.0,aiReact:0.9,aiDmg:1.0},
+  pro:{key:'pro',label:'PRO',icon:'fire',desc:'Challenging routines',color:'#fbbf24',rewardMult:2.25,hpMult:1.15,aiReact:0.7,aiDmg:1.25},
+  expert:{key:'expert',label:'EXPERT',icon:'skull',desc:'Master deployment',color:'#ec4899',rewardMult:5.625,hpMult:1.3,aiReact:0.55,aiDmg:1.45},
+  legend:{key:'legend',label:'LEGEND',icon:'crown',desc:'Fatal subroutines',color:'#ef4444',rewardMult:14.0625,hpMult:1.6,aiReact:0.4,aiDmg:1.75}
+};
+
+const LEVELS = [
+  {name:'GRID RECON',baseHP:120,reward:200,enemyType:'balanced',color:0x66ff00,story:'Test your reflexes against simple drones.',isBoss:false},
+  {name:'IRON FORGE',baseHP:150,reward:300,enemyType:'balanced',color:0x99ff00,story:'Crush the factory sentinels.',isBoss:false},
+  {name:'CHROME CITY STREETS',baseHP:360,reward:600,enemyType:'striker',color:0xffff00,story:'Face the CHROME GUARDIAN—apex of tier one.',isBoss:true},
+  {name:'NEON WASTELAND',baseHP:210,reward:500,enemyType:'defender',color:0xffbb00,story:'Navigate the neon ruins.',isBoss:false},
+  {name:'PLASMA SUB-CORE',baseHP:240,reward:650,enemyType:'tactical',color:0xff6600,story:'Breach the plasma chambers.',isBoss:false},
+  {name:'VOID TERMINAL',baseHP:720,reward:1400,enemyType:'balanced',color:0xff3300,story:'Confront the VOID SENTINEL—tier two awaits.',isBoss:true},
+  {name:'NEXUS OVERFLOW',baseHP:315,reward:1000,enemyType:'striker',color:0xcc0000,story:'Battle through the overloaded nexus.',isBoss:false},
+  {name:'SINGULARITY RIFT',baseHP:360,reward:1250,enemyType:'tactical',color:0x990000,story:'Enter the dimensional rift.',isBoss:false},
+  {name:'INFINITY LOOP',baseHP:1440,reward:2500,enemyType:'defender',color:0x660000,story:'Defeat the INFINITY ARBITER—the final guardian.',isBoss:true},
+  {name:'TRANSCENDENCE LAYER',baseHP:2880,reward:5000,enemyType:'legend',color:0x330000,story:'Face the TRANSCENDENT—your ultimate test.',isBoss:true}
+];
+
+const GEAR = {
+  plasma_blade:{name:'PLASMA BLADE',damage:8,cost:300,type:'weapon',tier:'rare',color:0x00ffcc},
+  pulse_cannon:{name:'PULSE RIFLE',damage:14,cost:500,type:'weapon',tier:'epic',color:0xffcc00},
+  void_reaver:{name:'VOID REAVER',damage:22,cost:900,type:'weapon',tier:'legendary',color:0xcc00ff},
+  titan_frame:{name:'TITAN CHASSIS',defense:0.25,cost:400,type:'armor',tier:'rare',color:0x1e90ff},
+  aegis_protocol:{name:'AEGIS OVERLAY',defense:0.45,cost:750,type:'armor',tier:'epic',color:0xaaeeff},
+  velocity_cores:{name:'VELOCITY CORES',speed:0.25,cost:350,type:'movement',tier:'rare',color:0x00ff55},
+  warp_drive:{name:'WARP TRUSTERS',speed:0.50,cost:700,type:'movement',tier:'epic',color:0xff3366}
+};
+
+const UPGRADES = [
+  {key:'power',icon:'⚡',name:'ATK SIGNAL BOOST',desc:'+2 Damage',baseCost:100,maxLvl:15},
+  {key:'armor',icon:'🛡️',name:'CHASSIS COATING',desc:'-3% dmg taken',baseCost:100,maxLvl:15},
+  {key:'speed',icon:'⚙️',name:'ACTUATOR TUNING',desc:'+8% joint speed',baseCost:90,maxLvl:10},
+  {key:'health',icon:'❤️',name:'CELL CAPACITY',desc:'+15 Max HP',baseCost:80,maxLvl:20}
+];
+
+const state = {
+  active:false, paused:false, difficulty:null, levelIdx:0, enemyType:'balanced',
+  playerHP:100, playerMaxHP:100, opponentHP:100, opponentMaxHP:100, damageDealt:0,
+  startTime:0, elapsedAtPause:0, input:{ left:false,right:false,jump:false },
+  dashCD:0, attackCD:0, opponentAttackCD:0, defendActive:0, opDefendActive:0,
+  chargeLevel:0, chargeProgress:0, charging:false, aiNextDecision:0, groundY:0,
+  combo:0, maxCombo:0, lastHitTime:0, frozen:false, opponentStagger:0, playerStagger:0,
+  ambienceTimer:0
+};
+
+const PHYS = {
+  WALK_ACC: 18, MAX_WALK: 4.125, GROUND_FRICTION: 14, AIR_DRAG: 2.5, JUMP_VEL: 6.15, GRAVITY: 18,
+  DASH_VEL: 24.375, DASH_DUR: 0.18, DASH_CD: 0.7, ATTACK_RANGE: 1.7, ATTACK_CD: 0.20
+};
+
+let scene, camera, renderer, playerFighter, opponentFighter, arenaObjects=[];
+
+// ---------- AUDIO ----------
+let audioCtx = null;
+function initAudio() {
+  if (audioCtx) return;
+  const AudioContext = window.AudioContext || window.webkitAudioContext;
+  if (!AudioContext) return;
+  audioCtx = new AudioContext();
+  const resumeAudio = () => {
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+      document.removeEventListener('click', resumeAudio);
+    }
+  };
+  document.addEventListener('click', resumeAudio);
+}
+
+function playSound(freq, duration=0.1, type='square', volume=0.15){
+  if(!audioCtx) { initAudio(); if(!audioCtx) return; }
+  const osc=audioCtx.createOscillator();
+  const gain=audioCtx.createGain();
+  osc.type=type;
+  osc.frequency.value=freq;
+  gain.gain.setValueAtTime(volume, audioCtx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime+duration);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start();
+  osc.stop(audioCtx.currentTime+duration);
+}
+
+const sfx = {
+  hit:()=>playSound(220,0.08,'square',0.2),
+  crit:()=>{ playSound(440,0.1,'sawtooth',0.25); setTimeout(()=>playSound(660,0.1,'sawtooth',0.2),60); },
+  block:()=>{ playSound(120,0.05,'triangle',0.2); },
+  dash:()=>{ playSound(660,0.06,'sine',0.2); },
+  charge:()=>{ playSound(330,0.15,'sine',0.12); },
+  // FIX: missing victory SFX that was called from endMatch
+  victory:()=>{
+    playSound(523,0.12,'square',0.2);
+    setTimeout(()=>playSound(659,0.12,'square',0.2),120);
+    setTimeout(()=>playSound(784,0.2,'square',0.22),260);
+  }
+};
+
+/* =====================================================================
+   HUMANOID FIGHTER
+   Animation rig + animation functions COPIED from 3D_Character_Animator_Pro.html
+   (idle / walk / punch (attack) / kick / jump / defend / hurt / dash)
+   Rig hierarchy (flat — like the uploaded animator):
+     character
+       ├─ torsoGroup   (y = 0.95)  → torso, frontStripe
+       ├─ waist        (y = 0.55)
+       ├─ head         (y = 1.40)
+       ├─ shoulderL    (-0.34, 1.14, 0)  → leftArm  (armCyl + hand)
+       ├─ shoulderR    ( 0.34, 1.14, 0)  → rightArm (armCyl + hand)
+       ├─ legL         (-0.13, 0.39, 0)  → thigh + foot
+       └─ legR         ( 0.13, 0.39, 0)  → thigh + foot
+   Facing is applied via character.rotation.y (turn the whole rig),
+   NOT via scale.x — this matches the animator file exactly.
+===================================================================== */
+class HumanoidFighter {
+  constructor(color, x, facing){
+    this.color = color;
+    this.x = x;
+    this.y = 0;
+    this.vx = 0;
+    this.vy = 0;
+    this.facing = facing;       // +1 faces right, -1 faces left
+    this.walkInput = 0;
+    this.grounded = true;
+    this.anim = 'idle';
+    this.animTime = 0;          // local anim clock (advances each frame)
+    this.attackTimer = 0;
+    this.dashTimer = 0;
+    this.hitFlash = 0;
+    this.staggerTimer = 0;
+    this.attackTimeout = null;
+    this.group = null;
+    this.parts = {};
+    this.hp = 100;
+    this.maxHp = 100;
+    this.isPlayer = (color === 0x00d9ff);
+  }
+
+  buildMesh(){
+    const character = new THREE.Group();
+
+    // ---- MATERIALS (palette derived from animator file, recolored per side) ----
+    const shirtColor = this.isPlayer ? 0x00d9ff : 0xff3aa8;
+    const stripeColor = this.isPlayer ? 0xffd60a : 0x00ffff;
+    const pantsColor = this.isPlayer ? 0x2c5282 : 0x4c1d95;
+
+    const skinMat  = new THREE.MeshStandardMaterial({ color: 0xddb582, roughness: 0.4, metalness: 0 });
+    const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.45, metalness: 0.1, emissive: shirtColor, emissiveIntensity: 0.15 });
+    const stripeMat= new THREE.MeshStandardMaterial({ color: stripeColor, roughness: 0.5, metalness: 0.1, emissive: stripeColor, emissiveIntensity: 0.25 });
+    const pantsMat = new THREE.MeshStandardMaterial({ color: pantsColor, roughness: 0.5, metalness: 0 });
+    const bootsMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.6, metalness: 0.1 });
+
+    // ---- TORSO GROUP (y = 0.95) ----
+    const torsoGroup = new THREE.Group();
+    torsoGroup.position.y = 0.95;
+    character.add(torsoGroup);
+
+    const torso = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.28, 0.26, 0.7, 16, 1, false),
+      shirtMat
+    );
+    torso.castShadow = true;
+    torsoGroup.add(torso);
+
+    const frontStripe = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.281, 0.261, 0.7, 16, 1, true, -0.3, 0.6),
+      stripeMat
+    );
+    frontStripe.position.z = 0.01;
+    torsoGroup.add(frontStripe);
+
+    // ---- WAIST ----
+    const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.32, 8), pantsMat);
+    waist.position.y = 0.55;
+    waist.castShadow = true;
+    character.add(waist);
+
+    // ---- HEAD ----
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), skinMat);
+    head.position.y = 1.4;
+    head.castShadow = true;
+    character.add(head);
+
+    // ---- SHOULDERS (direct children of character — matches animator) ----
+    const shoulderL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), shirtMat);
+    shoulderL.position.set(-0.34, 1.14, 0);
+    shoulderL.castShadow = true;
+    character.add(shoulderL);
+
+    const shoulderR = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), shirtMat);
+    shoulderR.position.set(0.34, 1.14, 0);
+    shoulderR.castShadow = true;
+    character.add(shoulderR);
+
+    const createArm = () => {
+      const group = new THREE.Group();
+      const armCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.07, 0.62, 8), shirtMat);
+      armCyl.position.y = -0.31;
+      armCyl.castShadow = true;
+      group.add(armCyl);
+      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), skinMat);
+      hand.position.set(0, -0.62, 0);
+      hand.castShadow = true;
+      group.add(hand);
+      return { group, hand, armCyl };
+    };
+
+    const leftArmRig = createArm();
+    const rightArmRig = createArm();
+    shoulderL.add(leftArmRig.group);
+    shoulderR.add(rightArmRig.group);
+
+    // ---- LEGS (groups with thigh + foot, direct children of character) ----
+    const createLeg = (xOffset) => {
+      const group = new THREE.Group();
+      group.position.set(xOffset, 0.39, 0);
+      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.08, 0.58, 8), pantsMat);
+      thigh.position.y = -0.29;
+      thigh.castShadow = true;
+      group.add(thigh);
+      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.26), bootsMat);
+      foot.position.set(0, -0.58, 0.07);
+      foot.castShadow = true;
+      group.add(foot);
+      return { group, foot };
+    };
+
+    const legLRig = createLeg(-0.13);
+    const legRRig = createLeg(0.13);
+    character.add(legLRig.group);
+    character.add(legRRig.group);
+
+    // ---- EQUIPMENT (player only): weapon on right hand, armor on torso, thrusters on feet ----
+    if (this.isPlayer) {
+      const gear = gameSave.player.equipped;
+
+      if (gear.weapon) {
+        const wd = GEAR[gear.weapon];
+        let weaponMesh;
+        if (gear.weapon === 'plasma_blade' || gear.weapon === 'void_reaver') {
+          weaponMesh = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.018, 0.04, 0.9, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 4 })
+          );
+          weaponMesh.rotation.x = Math.PI / 2;
+          weaponMesh.position.set(0, -0.05, 0.45);
+        } else {
+          // pulse cannon / rifle
+          weaponMesh = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12, 0.12, 0.5),
+            new THREE.MeshStandardMaterial({ color: wd.color, metalness: 0.9, roughness: 0.15, emissive: wd.color, emissiveIntensity: 0.6 })
+          );
+          weaponMesh.position.set(0, 0, 0.25);
+        }
+        rightArmRig.hand.add(weaponMesh);
+      }
+
+      if (gear.armor) {
+        const ad = GEAR[gear.armor];
+        const chestPlate = new THREE.Mesh(
+          new THREE.BoxGeometry(0.48, 0.5, 0.08),
+          new THREE.MeshStandardMaterial({ color: ad.color, metalness: 0.9, roughness: 0.15, emissive: ad.color, emissiveIntensity: 0.3 })
+        );
+        chestPlate.position.z = 0.22;
+        torsoGroup.add(chestPlate);
+      }
+
+      if (gear.movement) {
+        const md = GEAR[gear.movement];
+        const makeThruster = () => new THREE.Mesh(
+          new THREE.CylinderGeometry(0.045, 0.02, 0.22, 8),
+          new THREE.MeshStandardMaterial({ color: md.color, emissive: md.color, emissiveIntensity: 3 })
+        );
+        const tL = makeThruster();
+        tL.position.set(0, -0.02, -0.12);
+        tL.rotation.x = -Math.PI / 6;
+        legLRig.foot.add(tL);
+        const tR = makeThruster();
+        tR.position.set(0, -0.02, -0.12);
+        tR.rotation.x = -Math.PI / 6;
+        legRRig.foot.add(tR);
+      }
+    } else {
+      // opponent default blade
+      const opWeapon = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8),
+        new THREE.MeshStandardMaterial({ color: 0xff3aa8, emissive: 0xff3aa8, emissiveIntensity: 3 })
+      );
+      opWeapon.rotation.x = Math.PI / 2;
+      opWeapon.position.set(0, -0.05, 0.42);
+      rightArmRig.hand.add(opWeapon);
+    }
+
+    // ---- TRACKER LIGHT ----
+    const trackerLight = new THREE.PointLight(this.color, 3.0, 6);
+    trackerLight.position.set(0, 1.1, 0.6);
+    character.add(trackerLight);
+
+    // ---- STORE PART REFERENCES (used by applyAnim) ----
+    this.parts.torsoGroup = torsoGroup;
+    this.parts.torso = torso;
+    this.parts.head = head;
+    this.parts.shoulderL = shoulderL;
+    this.parts.shoulderR = shoulderR;
+    this.parts.leftArm = leftArmRig.group;
+    this.parts.rightArm = rightArmRig.group;
+    this.parts.legL = legLRig.group;
+    this.parts.legR = legRRig.group;
+
+    character.position.set(this.x, this.y + state.groundY, 0);
+    // Initial facing: rotate the whole rig around Y so it faces along ±X
+    character.rotation.y = (this.facing === 1) ? Math.PI / 2 : -Math.PI / 2;
+    this.group = character;
+    return character;
+  }
+
+  updatePhysics(dt){
+    if (this.walkInput !== 0){
+      this.vx += this.walkInput * PHYS.WALK_ACC * dt;
+      const max = PHYS.MAX_WALK * (this.isPlayer ? getPlayerSpeedMult() : 1);
+      if (Math.abs(this.vx) > max) this.vx = Math.sign(this.vx) * max;
+      this.facing = this.walkInput > 0 ? 1 : -1;
+    }
+    if (this.grounded) this.vx *= (1 - PHYS.GROUND_FRICTION * dt);
+    else this.vx *= (1 - PHYS.AIR_DRAG * dt);
+    if (Math.abs(this.vx) < 0.05) this.vx = 0;
+
+    if (this.dashTimer > 0) this.dashTimer -= dt;
+    this.x += this.vx * dt;
+    const bound = 4.5;
+    if (this.x > bound){ this.x = bound; this.vx = 0; }
+    if (this.x < -bound){ this.x = -bound; this.vx = 0; }
+
+    if (!this.grounded){
+      this.vy -= PHYS.GRAVITY * dt;
+      this.y += this.vy * dt;
+      if (this.y <= 0){
+        this.y = 0;
+        this.vy = 0;
+        this.grounded = true;
+        if (this.anim === 'jump') this.setAnim('idle');
+      }
+    }
+
+    if (this.attackTimer > 0) this.attackTimer -= dt;
+    if (this.hitFlash > 0) this.hitFlash -= dt;
+    if (this.staggerTimer > 0) this.staggerTimer -= dt;
+
+    // Auto-face the other fighter when idle and not moving
+    if (this.anim === 'idle' && Math.abs(this.vx) < 0.05){
+      const other = (this === playerFighter) ? opponentFighter : playerFighter;
+      if (other) this.facing = (other.x > this.x) ? 1 : -1;
+    }
+  }
+
+  setAnim(name){
+    if (this.anim === name) return;
+    if (this.attackTimeout){ clearTimeout(this.attackTimeout); this.attackTimeout = null; }
+    this.anim = name;
+    this.animTime = 0;
+
+    // attack/kick/hurt auto-return to idle (mirrors animator's punch/kick timeout)
+    if (name === 'attack' || name === 'kick'){
+      this.attackTimeout = setTimeout(() => {
+        if (this.anim === name) this.setAnim('idle');
+      }, 550);
+    } else if (name === 'hurt'){
+      this.attackTimeout = setTimeout(() => {
+        if (this.anim === 'hurt') this.setAnim('idle');
+      }, 300);
+    } else if (name === 'dash'){
+      this.attackTimeout = setTimeout(() => {
+        if (this.anim === 'dash') this.setAnim(this.grounded ? 'idle' : 'jump');
+      }, 220);
+    }
+  }
+
+  jump(){
+    if (!this.grounded) return false;
+    this.vy = PHYS.JUMP_VEL;
+    this.grounded = false;
+    this.setAnim('jump');
+    return true;
+  }
+
+  dash(){
+    if (this.dashTimer > 0) return false;
+    const dir = this.walkInput !== 0 ? this.walkInput : this.facing;
+    this.vx = dir * PHYS.DASH_VEL;
+    this.facing = dir;
+    this.dashTimer = PHYS.DASH_DUR;
+    this.setAnim('dash');
+    return true;
+  }
+
+  /* ----- ANIMATION FUNCTION (ported directly from animator updateAnim) -----
+     The animator advanced its anim clock as `animState.time += dt * 3.3` and
+     used local `t` directly. We replicate that by scaling dt the same way. */
+  applyAnim(dt){
+    if (!this.group) return;
+
+    // Advance local anim time: 1.5× faster for snappy combat
+    const rate = this.isPlayer ? 7.0 * getPlayerSpeedMult() : 7.0;
+    this.animTime += dt * rate;
+    const t = this.animTime;
+
+    // --- Reset bones each frame (matches animator's reset block) ---
+    this.parts.leftArm.rotation.x = 0;
+    this.parts.rightArm.rotation.x = 0;
+    this.parts.leftArm.rotation.y = 0;
+    this.parts.rightArm.rotation.y = 0;
+    this.parts.legL.rotation.x = 0;
+    this.parts.legR.rotation.x = 0;
+    this.group.rotation.z = 0;
+    this.parts.torsoGroup.rotation.x = 0;
+
+    const moving = Math.abs(this.vx) > 0.2;
+
+    // Auto-promote: idle while moving on ground → walk; walk while stopped → idle
+    if (this.anim === 'idle' && moving && this.grounded) this.setAnim('walk');
+    else if (this.anim === 'walk' && !moving && this.grounded) this.setAnim('idle');
+
+    if (this.anim === 'idle'){
+      // breathing — exactly like animator
+      const breath = Math.sin(t * 2.2) * 0.06;
+      this.parts.leftArm.rotation.x = breath;
+      this.parts.rightArm.rotation.x = -breath;
+      this.parts.torsoGroup.rotation.x = breath * 0.3;
+    }
+    else if (this.anim === 'walk'){
+      const legSwing = Math.sin(t * 7.2) * 0.75;
+      const armSwing = Math.sin(t * 7.2) * 0.55;
+      this.parts.legL.rotation.x = legSwing;
+      this.parts.legR.rotation.x = -legSwing;
+      this.parts.leftArm.rotation.x = armSwing;
+      this.parts.rightArm.rotation.x = -armSwing;
+    }
+    else if (this.anim === 'attack'){
+      // Punch (animator-style). Use facing as the attack direction so the punch
+      // extends toward the enemy regardless of which way the rig is turned.
+      let prog = Math.min(1, t * 3.5);
+      if (prog > 1) prog = Math.max(0, 2 - t * 3.5);
+      const f = this.facing; // local-space: rig already turned via rotation.y
+      this.parts.rightArm.rotation.x = -(1.0 + prog * 1.5) * f; // extend forward, mirrored by facing
+      this.group.rotation.z = -0.15 * prog * f;
+    }
+    else if (this.anim === 'kick'){
+      let prog = Math.min(1, t * 3.0);
+      if (prog > 1) prog = Math.max(0, 2 - t * 3.0);
+      this.parts.legR.rotation.x = -(0.9 + prog * 1.3) * this.facing; // kick forward, mirrored by facing
+      this.group.rotation.z = 0.1 * prog * this.facing;
+    }
+    else if (this.anim === 'jump'){
+      const tuck = Math.sin(Math.PI * Math.min(1, t * 1.6)) * 0.5;
+      this.parts.legL.rotation.x = -tuck;
+      this.parts.legR.rotation.x = -tuck;
+      this.parts.leftArm.rotation.x = tuck * 0.5;
+      this.parts.rightArm.rotation.x = tuck * 0.5;
+    }
+    else if (this.anim === 'defend'){
+      // Both arms raised crossed in front
+      this.parts.leftArm.rotation.x = -1.4;
+      this.parts.rightArm.rotation.x = -1.4;
+      this.parts.leftArm.rotation.y = 0.5;
+      this.parts.rightArm.rotation.y = -0.5;
+      this.parts.torsoGroup.rotation.x = 0.1;
+    }
+    else if (this.anim === 'hurt'){
+      // Recoil
+      const recoil = Math.sin(Math.min(1, t * 4) * Math.PI) * 0.4;
+      this.parts.torsoGroup.rotation.x = -recoil;
+      this.parts.leftArm.rotation.x = 0.6;
+      this.parts.rightArm.rotation.x = 0.6;
+      this.group.rotation.z = recoil * 0.2 * -this.facing;
+    }
+    else if (this.anim === 'dash'){
+      this.parts.torsoGroup.rotation.x = 0.4;
+      this.parts.legL.rotation.x = 0.4;
+      this.parts.legR.rotation.x = -0.4;
+      this.parts.leftArm.rotation.x = -0.6;
+      this.parts.rightArm.rotation.x = -0.6;
+    }
+
+    // World transform: position + facing rotation around Y (animator style)
+    this.group.position.x = this.x;
+    this.group.position.y = state.groundY + this.y;
+    this.group.rotation.y = (this.facing === 1) ? Math.PI / 2 : -Math.PI / 2;
+  }
+}
+
+// ---------- THREE ENVIRONMENT ----------
+function initThree(){
+  if (renderer) return;
+  const canvas = document.getElementById('gameCanvas');
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x020208);
+
+  camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera.position.set(0, 2.2, 8.5);
+  camera.lookAt(0, 1.1, 0);
+
+  renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, powerPreference:'high-performance' });
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x020208, 1);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+  scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+
+  const key = new THREE.DirectionalLight(0xfff5e6, 3.0);
+  key.position.set(5, 12, 6);
+  key.castShadow = true;
+  key.shadow.mapSize.width = 2048;
+  key.shadow.mapSize.height = 2048;
+  scene.add(key);
+
+  const fill = new THREE.DirectionalLight(0x00d9ff, 1.5);
+  fill.position.set(-6, 3, 5);
+  scene.add(fill);
+
+  const rim = new THREE.DirectionalLight(0xff3aa8, 0.8);
+  rim.position.set(0, 5, -6);
+  scene.add(rim);
+
+  buildArena();
+
+  window.addEventListener('resize', () => {
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+  });
+
+  let last = 0;
+  function loop(now){
+    const dt = Math.min(0.033, (now - last) / 1000);
+    last = now;
+    animateBackgroundElements(dt);
+    if (state.active && !state.paused && !state.frozen) tick(dt);
+    renderer.render(scene, camera);
+    requestAnimationFrame(loop);
+  }
+  requestAnimationFrame(loop);
+}
+
+let animatedBgObjects = [];
+function buildArena(){
+  arenaObjects.forEach(o => { if (o.parent) scene.remove(o); });
+  arenaObjects = [];
+  animatedBgObjects = [];
+
+  // ---- GRADIENT SKY SPHERE ----
+  const skyGeo = new THREE.SphereGeometry(80, 32, 32);
+  const skyCanvas = document.createElement('canvas');
+  skyCanvas.width = 256;
+  skyCanvas.height = 256;
+  const ctx = skyCanvas.getContext('2d');
+  for (let y = 0; y < 256; y++) {
+    const grad = ctx.createLinearGradient(0, 0, 0, 256);
+    grad.addColorStop(0, '#1a1a3a');
+    grad.addColorStop(1, '#000000');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y, 256, 1);
+  }
+  const skyTex = new THREE.CanvasTexture(skyCanvas);
+  const skyMat = new THREE.MeshBasicMaterial({ map: skyTex, side: THREE.BackSide });
+  const sky = new THREE.Mesh(skyGeo, skyMat);
+  scene.add(sky);
+  arenaObjects.push(sky);
+
+  // ---- METALLIC FLOOR ----
+  const groundGeo = new THREE.PlaneGeometry(35, 14);
+  const groundMat = new THREE.MeshStandardMaterial({ 
+    color: 0x1a2332, 
+    roughness: 0.25, 
+    metalness: 0.9,
+    emissive: 0x001a3a,
+    emissiveIntensity: 0.3
+  });
+  const ground = new THREE.Mesh(groundGeo, groundMat);
+  ground.rotation.x = -Math.PI / 2;
+  state.groundY = 0;
+  ground.position.y = state.groundY;
+  ground.receiveShadow = true;
+  scene.add(ground);
+  arenaObjects.push(ground);
+
+  // ---- CYAN GRID HELPER ----
+  const grid = new THREE.GridHelper(36, 36, 0x00d9ff, 0x1a3a5f);
+  grid.position.y = state.groundY + 0.01;
+  scene.add(grid);
+  arenaObjects.push(grid);
+
+  // ---- ANIMATED PARTICLES (200, neon green) ----
+  const particleGeo = new THREE.BufferGeometry();
+  const particleCount = 200;
+  const positions = new Float32Array(particleCount * 3);
+  const velocities = new Float32Array(particleCount * 3);
+  for (let i = 0; i < particleCount; i++) {
+    positions[i * 3] = (Math.random() - 0.5) * 20;
+    positions[i * 3 + 1] = Math.random() * 8;
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 12;
+    velocities[i * 3] = (Math.random() - 0.5) * 2;
+    velocities[i * 3 + 1] = Math.random() * 0.5;
+    velocities[i * 3 + 2] = (Math.random() - 0.5) * 2;
+  }
+  particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  const particleMat = new THREE.PointsMaterial({ 
+    color: 0x00ff88, 
+    size: 0.08,
+    transparent: true,
+    opacity: 0.4,
+    sizeAttenuation: true
+  });
+  const particles = new THREE.Points(particleGeo, particleMat);
+  particles.position.z = -8;
+  scene.add(particles);
+  arenaObjects.push(particles);
+  animatedBgObjects.push({ 
+    type: 'particles', 
+    mesh: particles, 
+    velocities: velocities,
+    positions: positions,
+    bounds: { x: 20, y: 8, z: 12 }
+  });
+
+  // ---- ANIMATED NEON RINGS (5 rotating toruses) ----
+  for (let i = 0; i < 5; i++) {
+    const torusGeo = new THREE.TorusGeometry(2 + i * 0.8, 0.15, 8, 100);
+    const torusMat = new THREE.MeshStandardMaterial({
+      color: [0x00ff88, 0x00d9ff, 0xff3aa8, 0xffaa00, 0xff4d4d][i],
+      emissive: [0x00ff88, 0x00d9ff, 0xff3aa8, 0xffaa00, 0xff4d4d][i],
+      emissiveIntensity: 0.8,
+      metalness: 0.8,
+      roughness: 0.2,
+      transparent: true,
+      opacity: 0.3
+    });
+    const torus = new THREE.Mesh(torusGeo, torusMat);
+    torus.position.y = 1.2 + i * 0.3;
+    torus.position.z = -7;
+    torus.rotation.x = Math.random() * Math.PI;
+    torus.rotation.z = Math.random() * Math.PI;
+    scene.add(torus);
+    arenaObjects.push(torus);
+    animatedBgObjects.push({ mesh: torus, rotationSpeed: (0.3 + Math.random() * 0.3) * (Math.random() > 0.5 ? 1 : -1), axis: 'xyz' });
+  }
+
+  const levelIdx = state.levelIdx;
+  const arenaName = LEVELS[levelIdx].name;
+
+  if (arenaName === 'GRID RECON'){
+    // Level 0: Cyan wireframe data grid
+    for (let i = 0; i < 12; i++){
+      const pillar = new THREE.Mesh(
+        new THREE.BoxGeometry(0.4, 4.0, 0.4),
+        new THREE.MeshBasicMaterial({ color: 0x1e90ff, wireframe: true })
+      );
+      pillar.position.set((Math.random() - 0.5) * 16, 2.0, -2.5 - Math.random() * 3);
+      scene.add(pillar);
+      arenaObjects.push(pillar);
+    }
+  } else if (arenaName === 'IRON FORGE'){
+    // Level 1: Heavy structural beams
+    for (let i = 0; i < 6; i++){
+      const beam = new THREE.Mesh(
+        new THREE.BoxGeometry(3, 0.4, 0.4),
+        new THREE.MeshStandardMaterial({ color: 0x654321, roughness: 0.8, metalness: 0.7 })
+      );
+      beam.position.set(-4 + i * 2.5, 2.5 + i * 0.6, -4);
+      beam.rotation.z = 0.4;
+      scene.add(beam);
+      arenaObjects.push(beam);
+      animatedBgObjects.push({ mesh: beam, rotationSpeed: 0.1, axis: 'z' });
+    }
+  } else if (arenaName === 'CHROME CITY STREETS'){
+    // Level 2 (BOSS): Neon street signs spinning
+    for (let i = 0; i < 8; i++){
+      const sign = new THREE.Mesh(
+        new THREE.PlaneGeometry(2, 0.3),
+        new THREE.MeshStandardMaterial({ color: 0xffff00, emissive: 0xffff00, emissiveIntensity: 2.5 })
+      );
+      sign.position.set(-6 + i * 2, 3.5 + Math.sin(i) * 0.5, -5);
+      sign.rotation.x = 0.5;
+      sign.rotation.z = i * 0.5;
+      scene.add(sign);
+      arenaObjects.push(sign);
+      animatedBgObjects.push({ mesh: sign, rotationSpeed: 0.8, axis: 'xyz' });
+    }
+  } else if (arenaName === 'NEON WASTELAND'){
+    // Level 3: Pink neon tubes
+    for (let i = 0; i < 8; i++){
+      const tube = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.12, 0.12, 10, 8),
+        new THREE.MeshStandardMaterial({ color: 0xff1493, emissive: 0xff1493, emissiveIntensity: 2.2 })
+      );
+      tube.position.set(-5 + i * 1.5, 2, -3);
+      tube.rotation.z = 0.3 + i * 0.25;
+      scene.add(tube);
+      arenaObjects.push(tube);
+    }
+  } else if (arenaName === 'PLASMA SUB-CORE'){
+    // Level 4: Plasma energy rings
+    for (let i = 0; i < 5; i++){
+      const ring = new THREE.Mesh(
+        new THREE.TorusGeometry(3.5 - i * 0.5, 0.25, 8, 64),
+        new THREE.MeshStandardMaterial({ color: 0xff6600, emissive: 0xff6600, emissiveIntensity: 2, metalness: 0.7 })
+      );
+      ring.position.y = 1.5;
+      ring.rotation.x = Math.PI / 2.5 + i * 0.2;
+      ring.rotation.z = i * 0.3;
+      scene.add(ring);
+      arenaObjects.push(ring);
+      animatedBgObjects.push({ mesh: ring, rotationSpeed: 0.35 * (i % 2 === 0 ? 1 : -1), axis: 'xyz' });
+    }
+  } else if (arenaName === 'VOID TERMINAL'){
+    // Level 5: Floating void spheres
+    for (let i = 0; i < 10; i++){
+      const sphere = new THREE.Mesh(
+        new THREE.IcosahedronGeometry(0.5, 3),
+        new THREE.MeshStandardMaterial({ color: 0x9d00ff, emissive: 0x9d00ff, emissiveIntensity: 1.8, metalness: 0.6 })
+      );
+      const angle = (i / 10) * Math.PI * 2;
+      sphere.position.set(Math.cos(angle) * 5, 2 + Math.sin(i * 0.5) * 1, Math.sin(angle) * 5);
+      scene.add(sphere);
+      arenaObjects.push(sphere);
+      animatedBgObjects.push({ mesh: sphere, rotationSpeed: 0.4 + i * 0.05, axis: 'xyz' });
+    }
+  } else if (arenaName === 'NEXUS OVERFLOW'){
+    // Level 6: Cascading data streams
+    for (let i = 0; i < 12; i++){
+      const stream = new THREE.Mesh(
+        new THREE.BoxGeometry(0.2, 3, 0.2),
+        new THREE.MeshStandardMaterial({ color: 0x00ffff, emissive: 0x00ffff, emissiveIntensity: 1.5 })
+      );
+      stream.position.set(-5.5 + i * 1.2, 2.5, -4);
+      stream.rotation.z = 0.3;
+      stream.scale.y = 1 + Math.sin(i * 0.5) * 0.5;
+      scene.add(stream);
+      arenaObjects.push(stream);
+      animatedBgObjects.push({ mesh: stream, rotationSpeed: 0.6, axis: 'y' });
+    }
+  } else if (arenaName === 'SINGULARITY RIFT'){
+    // Level 7: Dimensional rift vortex
+    for (let i = 0; i < 7; i++){
+      const vortex = new THREE.Mesh(
+        new THREE.TorusGeometry(5 - i * 0.6, 0.3, 6, 128),
+        new THREE.MeshStandardMaterial({ color: 0x9900ff, emissive: 0x9900ff, emissiveIntensity: 2.3, metalness: 0.9 })
+      );
+      vortex.position.y = 2;
+      vortex.rotation.x = 0.3 + i * 0.15;
+      vortex.rotation.z = i * 0.4;
+      scene.add(vortex);
+      arenaObjects.push(vortex);
+      animatedBgObjects.push({ mesh: vortex, rotationSpeed: 0.5 * (i % 2 === 0 ? 1 : -1), axis: 'xyz' });
+    }
+  } else if (arenaName === 'INFINITY LOOP'){
+    // Level 8 (BOSS): Hypercube fractal
+    for (let i = 0; i < 6; i++){
+      for (let j = 0; j < 3; j++){
+        const cube = new THREE.Mesh(
+          new THREE.BoxGeometry(0.5, 0.5, 0.5),
+          new THREE.MeshStandardMaterial({ color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 2 })
+        );
+        cube.position.set(-4 + i * 1.6, 1.5 + j * 1.2, -3 + Math.sin(i * j) * 2);
+        scene.add(cube);
+        arenaObjects.push(cube);
+        animatedBgObjects.push({ mesh: cube, rotationSpeed: 0.5 + i * 0.1, axis: 'xyz' });
+      }
+    }
+  } else if (arenaName === 'TRANSCENDENCE LAYER'){
+    // Level 9 (FINAL BOSS): Reality-breaking lattice
+    for (let i = 0; i < 5; i++){
+      const lattice = new THREE.Mesh(
+        new THREE.OctahedronGeometry(1.5),
+        new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 2.5, metalness: 0.9, wireframe: false })
+      );
+      lattice.position.set(-4 + i * 2.2, 2.5 + i * 0.5, -3);
+      scene.add(lattice);
+      arenaObjects.push(lattice);
+      animatedBgObjects.push({ mesh: lattice, rotationSpeed: 0.7 + i * 0.15, axis: 'xyz' });
+    }
+    for (let i = 0; i < 4; i++){
+      const edge = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.08, 0.08, 8, 4),
+        new THREE.MeshStandardMaterial({ color: 0xff00ff, emissive: 0xff00ff, emissiveIntensity: 3 })
+      );
+      edge.position.set(-3 + i * 2.5, 2, -3);
+      edge.rotation.z = 0.5;
+      scene.add(edge);
+      arenaObjects.push(edge);
+      animatedBgObjects.push({ mesh: edge, rotationSpeed: 0.6, axis: 'z' });
+    }
+  }
+  
+  // Ensure all arena objects are far behind gameplay (z < -10)
+  arenaObjects.forEach(obj => {
+    if (obj.position.z > -10) obj.position.z = -8 - Math.random() * 5;
+  });
+}
+
+function animateBackgroundElements(dt){
+  animatedBgObjects.forEach(obj => {
+    if (obj.type === 'particles') {
+      const positions = obj.positions;
+      const velocities = obj.velocities;
+      const bounds = obj.bounds;
+      const posAttr = obj.mesh.geometry.getAttribute('position');
+      for (let i = 0; i < obj.mesh.geometry.attributes.position.count; i++) {
+        positions[i * 3] += velocities[i * 3] * dt;
+        positions[i * 3 + 1] += velocities[i * 3 + 1] * dt;
+        positions[i * 3 + 2] += velocities[i * 3 + 2] * dt;
+        if (positions[i * 3] > bounds.x) positions[i * 3] = -bounds.x;
+        if (positions[i * 3] < -bounds.x) positions[i * 3] = bounds.x;
+        if (positions[i * 3 + 1] > bounds.y) positions[i * 3 + 1] = 0;
+        if (positions[i * 3 + 1] < 0) positions[i * 3 + 1] = bounds.y;
+        if (positions[i * 3 + 2] > bounds.z) positions[i * 3 + 2] = -bounds.z;
+        if (positions[i * 3 + 2] < -bounds.z) positions[i * 3 + 2] = bounds.z;
+      }
+      posAttr.needsUpdate = true;
+    } else if (obj.rotationSpeed) {
+      obj.mesh.rotation.z += obj.rotationSpeed * dt;
+      if (obj.axis === 'xyz') {
+        obj.mesh.rotation.x += obj.rotationSpeed * dt * 0.6;
+        obj.mesh.rotation.y += obj.rotationSpeed * dt * 0.4;
+      }
+    }
+  });
+}
+
+function spawnFighters(){
+  if (playerFighter && playerFighter.group) scene.remove(playerFighter.group);
+  if (opponentFighter && opponentFighter.group) scene.remove(opponentFighter.group);
+
+  const opponentColor = LEVELS[state.levelIdx].color;
+  playerFighter = new HumanoidFighter(0x00d9ff, -2.5, 1);
+  opponentFighter = new HumanoidFighter(opponentColor, 2.5, -1);
+  scene.add(playerFighter.buildMesh());
+  scene.add(opponentFighter.buildMesh());
+
+  playerFighter.hp = state.playerMaxHP;
+  playerFighter.maxHp = state.playerMaxHP;
+  opponentFighter.hp = state.opponentMaxHP;
+  opponentFighter.maxHp = state.opponentMaxHP;
+}
+
+function getPlayerDamageReduction(){
+  let mult = 1 - (gameSave.player.stats.armor - 1) * 0.03;
+  if (gameSave.player.equipped.armor) mult *= (1 - GEAR[gameSave.player.equipped.armor].defense);
+  return Math.max(0.15, mult);
+}
+function getPlayerBaseDamage(){
+  let dmg = 10 + (gameSave.player.stats.power - 1) * 2;
+  if (gameSave.player.equipped.weapon) dmg += GEAR[gameSave.player.equipped.weapon].damage;
+  return dmg;
+}
+function getPlayerSpeedMult(){
+  let m = 1 + (gameSave.player.stats.speed - 1) * 0.08;
+  if (gameSave.player.equipped.movement) m += GEAR[gameSave.player.equipped.movement].speed;
+  return m;
+}
+
+function updateHUD(){
+  const pctP = state.playerHP / state.playerMaxHP;
+  const pctO = state.opponentHP / state.opponentMaxHP;
+  document.getElementById('playerHPText').innerHTML = `${Math.round(state.playerHP)}/${Math.round(state.playerMaxHP)}`;
+  document.getElementById('opponentHPText').innerHTML = `${Math.round(state.opponentHP)}/${Math.round(state.opponentMaxHP)}`;
+  document.getElementById('playerHPBar').style.width = (pctP * 100) + '%';
+  document.getElementById('opponentHPBar').style.width = (pctO * 100) + '%';
+}
+function updateChargeUI(){ }
+function updateDashCD(){
+  const pct = state.dashCD / PHYS.DASH_CD * 100;
+  document.getElementById('dashCDRing').style.setProperty('--cd', (1 - pct / 100) * 100 + '%');
+}
+function addLog(msg, type){
+  const log = document.getElementById('combatLog');
+  const e = document.createElement('div');
+  e.className = `log-entry log-${type}`;
+  e.textContent = `> ${msg}`;
+  log.appendChild(e);
+  if (log.children.length > 3) log.removeChild(log.firstChild);
+  log.scrollTop = log.scrollHeight;
+}
+function screenShake(){
+  const screen = document.getElementById('gameScreen');
+  screen.classList.add('shake');
+  setTimeout(() => screen.classList.remove('shake'), 350);
+}
+
+function getEnemyMultiplier(){
+  const levelIdx = state.levelIdx;
+  const isBoss = (levelIdx + 1) % 3 === 0 && levelIdx > 0;
+  let mult = 1 + (levelIdx * 0.5);
+  if (isBoss) mult *= 2;
+  return Math.max(1, mult * 1.5);
+}
+
+function getEnemySpeedMultiplier(){ return getEnemyMultiplier(); }
+function getEnemyDefenseMultiplier(){ return getEnemyMultiplier(); }
+
+function enemyAttack(){
+  if (state.opponentAttackCD > 0 || state.opponentStagger > 0) return;
+  const dist = Math.abs(playerFighter.x - opponentFighter.x);
+  if (dist > PHYS.ATTACK_RANGE + 0.3) return;
+  // Alternate between punch and kick for visual variety
+  opponentFighter.setAnim(Math.random() < 0.65 ? 'attack' : 'kick');
+  state.opponentAttackCD = PHYS.ATTACK_CD * (1 / getEnemySpeedMultiplier()) * (1 / 1.5);
+  setTimeout(() => {
+    if (!state.active) return;
+    if (Math.abs(playerFighter.x - opponentFighter.x) > PHYS.ATTACK_RANGE + 0.5) return;
+    const diff = DIFFICULTIES[state.difficulty];
+    let dmg = (6 + Math.random() * 5) * diff.aiDmg * 2.25;
+    const defMult = getEnemyDefenseMultiplier();
+    if (state.defendActive > 0){
+      dmg *= (0.35 / defMult);
+      addLog(`Blocked strike! -${Math.round(dmg)} STRUCTURAL`, 'block');
+      sfx.block();
+    } else {
+      dmg *= getPlayerDamageReduction();
+      addLog(`Direct hit taken! -${Math.round(dmg)} STRUCTURAL`, 'hit');
+      playerFighter.setAnim('hurt');
+      playerFighter.hitFlash = 0.2;
+      screenShake();
+      sfx.hit();
+    }
+    state.playerHP = Math.max(0, state.playerHP - dmg);
+    updateHUD();
+    if (state.playerHP <= 0) endMatch(false);
+  }, 90);
+}
+
+function enemyDefend(){
+  state.opDefendActive = 1.2;
+  opponentFighter.setAnim('defend');
+  addLog('Enemy deployed shields', 'block');
+  setTimeout(() => {
+    if (opponentFighter.anim === 'defend') opponentFighter.setAnim('idle');
+  }, 1200);
+}
+
+function doPlayerAttack(){
+  if (!state.active || state.paused || state.attackCD > 0) return;
+  state.attackCD = PHYS.ATTACK_CD;
+  playerFighter.setAnim('attack');
+  sfx.hit();
+  setTimeout(() => {
+    if (!state.active) return;
+    const dist = Math.abs(playerFighter.x - opponentFighter.x);
+    if (dist > PHYS.ATTACK_RANGE) return;
+
+    let dmg = getPlayerBaseDamage() + (Math.random() - 0.5) * 4;
+    if (state.chargeLevel > 0){
+      dmg *= (1 + state.chargeLevel * 0.5);
+      addLog(`CRITICAL IMPACT MULTIPLIER! -${Math.round(dmg)}`, 'crit');
+      sfx.crit();
+      state.chargeLevel = 0;
+      state.chargeProgress = 0;
+      state.charging = false;
+    }
+    if (state.opDefendActive > 0){
+      dmg *= 0.35;
+      addLog(`Enemy structural blocks! -${Math.round(dmg)}`, 'block');
+      sfx.block();
+    } else {
+      addLog(`Successful hit output! -${Math.round(dmg)} AP`, 'hit');
+      opponentFighter.setAnim('hurt');
+      opponentFighter.hitFlash = 0.2;
+      screenShake();
+      sfx.hit();
+    }
+    state.damageDealt += dmg;
+    state.opponentHP = Math.max(0, state.opponentHP - dmg);
+    updateHUD();
+    if (state.opponentHP <= 0) endMatch(true);
+  }, 90);
+}
+
+function doPlayerDefend(){
+  if (!state.active || state.paused) return;
+  state.defendActive = 1.2;
+  playerFighter.setAnim('defend');
+  addLog('SKELETAL DEFENSE ACTIVE', 'block');
+  sfx.block();
+  setTimeout(() => {
+    if (playerFighter.anim === 'defend') playerFighter.setAnim('idle');
+  }, 1200);
+}
+
+function doPlayerKick(){
+  if (!state.active || state.paused || state.attackCD > 0) return;
+  state.attackCD = PHYS.ATTACK_CD;
+  playerFighter.setAnim('kick');
+  sfx.hit();
+  setTimeout(() => {
+    if (!state.active) return;
+    const dist = Math.abs(playerFighter.x - opponentFighter.x);
+    if (dist > PHYS.ATTACK_RANGE + 0.3) return;
+
+    let dmg = getPlayerBaseDamage() * 2.7 + (Math.random() - 0.5) * 6;
+    if (state.opDefendActive > 0){
+      dmg *= 0.35;
+      addLog(`Enemy blocks kick! -${Math.round(dmg)}`, 'block');
+      sfx.block();
+    } else {
+      addLog(`DEVASTATING KICK! -${Math.round(dmg)} AP`, 'crit');
+      opponentFighter.setAnim('hurt');
+      opponentFighter.hitFlash = 0.2;
+      screenShake();
+      sfx.crit();
+    }
+    state.damageDealt += dmg;
+    state.opponentHP = Math.max(0, state.opponentHP - dmg);
+    updateHUD();
+    if (state.opponentHP <= 0) endMatch(true);
+  }, 110);
+}
+
+function doPlayerCharge(){
+  if (!state.active || state.paused) return;
+  doPlayerKick();
+}
+function stopCharge(){ }
+
+function doPlayerDash(){
+  if (!state.active || state.paused || state.dashCD > 0) return;
+  if (playerFighter.dash()){
+    state.dashCD = PHYS.DASH_CD;
+    state.charging = false;
+    state.chargeLevel = 0;
+    state.chargeProgress = 0;
+    sfx.dash();
+  }
+}
+
+function aiTick(dt){
+  state.aiNextDecision -= dt;
+  if (state.aiNextDecision > 0) return;
+  const diff = DIFFICULTIES[state.difficulty];
+  const speedMult = getEnemySpeedMultiplier();
+  state.aiNextDecision = (diff.aiReact / speedMult) * (0.7 + Math.random() * 0.6);
+  const dist = playerFighter.x - opponentFighter.x;
+  const absDist = Math.abs(dist);
+  const sign = Math.sign(dist) || 1;
+  opponentFighter.walkInput = 0;
+
+  if (absDist > PHYS.ATTACK_RANGE + 0.2){
+    opponentFighter.walkInput = sign > 0 ? 1 : -1;
+  } else {
+    const r = Math.random();
+    const aggression = ENEMY_TYPES[state.enemyType].aggression;
+    if (playerFighter.anim === 'attack' && r < 0.5) enemyDefend();
+    else if (r < (0.6 * aggression)) enemyAttack();
+  }
+}
+
+function tick(dt){
+  let walk = 0;
+  if (state.input.left) walk -= 1;
+  if (state.input.right) walk += 1;
+  playerFighter.walkInput = walk;
+  if (state.input.jump){
+    playerFighter.jump();
+    state.input.jump = false;
+  }
+  if (state.dashCD > 0) state.dashCD = Math.max(0, state.dashCD - dt);
+  if (state.attackCD > 0) state.attackCD = Math.max(0, state.attackCD - dt);
+  if (state.opponentAttackCD > 0) state.opponentAttackCD = Math.max(0, state.opponentAttackCD - dt);
+  if (state.defendActive > 0) state.defendActive = Math.max(0, state.defendActive - dt);
+  if (state.opDefendActive > 0) state.opDefendActive = Math.max(0, state.opDefendActive - dt);
+  if (state.charging){
+    state.chargeProgress += dt * 1.6;
+    while (state.chargeProgress >= 1 && state.chargeLevel < 3){
+      state.chargeLevel++;
+      state.chargeProgress = 0;
+    }
+  }
+  updateChargeUI();
+  updateDashCD();
+  playerFighter.updatePhysics(dt);
+  opponentFighter.updatePhysics(dt);
+  aiTick(dt);
+  playerFighter.applyAnim(dt);
+  opponentFighter.applyAnim(dt);
+
+  const elapsed = (performance.now() - state.startTime + state.elapsedAtPause) / 1000;
+  const m = Math.floor(elapsed / 60), s = Math.floor(elapsed % 60);
+  document.getElementById('timerText').innerText = `${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+
+  const mid = (playerFighter.x + opponentFighter.x) / 2;
+  camera.position.x += (mid * 0.3 - camera.position.x) * 0.05;
+  camera.lookAt(mid * 0.3, 1.1, 0);
+}
+
+function startMatch(idx){
+  state.levelIdx = idx;
+  const arena = LEVELS[idx];
+  state.enemyType = arena.enemyType;
+  const diff = DIFFICULTIES[state.difficulty];
+  initThree();
+  buildArena();
+
+  state.playerMaxHP = 100 + (gameSave.player.stats.health - 1) * 15;
+  state.opponentMaxHP = Math.round(arena.baseHP * diff.hpMult * 1.5);
+  state.playerHP = state.playerMaxHP;
+  state.opponentHP = state.opponentMaxHP;
+  state.damageDealt = 0;
+
+  spawnFighters();
+  state.active = false;
+  state.paused = false;
+  state.startTime = performance.now();
+  state.elapsedAtPause = 0;
+  state.chargeLevel = 0;
+  state.chargeProgress = 0;
+  state.charging = false;
+  state.input = { left:false, right:false, jump:false };
+  document.getElementById('levelText').innerText = `LVL ${idx + 1} · ${arena.name}`;
+  const badge = document.getElementById('diffBadge');
+  badge.innerText = diff.label;
+  badge.style.color = diff.color;
+  document.getElementById('combatLog').innerHTML = '';
+  updateHUD();
+  
+  // Show story screen
+  const threatLevel = arena.isBoss ? '🔴' : (idx < 3 ? '🟢' : idx < 6 ? '🟡' : '🔴');
+  document.getElementById('storyTitle').innerText = arena.name;
+  document.getElementById('storyText').innerText = arena.story;
+  document.getElementById('storyHP').innerText = state.opponentMaxHP;
+  document.getElementById('storyThreat').innerText = threatLevel;
+  document.getElementById('btnStartMission').onclick = () => {
+    state.active = true;
+    state.startTime = performance.now();
+    showScreen('gameScreen');
+  };
+  showScreen('storyScreen');
+}
+
+function endMatch(won){
+  state.active = false;
+  const elapsed = Math.round((performance.now() - state.startTime + state.elapsedAtPause) / 1000);
+  const m = Math.floor(elapsed / 60), s = elapsed % 60;
+  const diff = DIFFICULTIES[state.difficulty];
+  let reward = 0;
+  if (won){
+    reward = Math.round(LEVELS[state.levelIdx].reward * diff.rewardMult);
+    gameSave.addWin(reward);
+    document.getElementById('resultTitle').innerHTML = 'MISSION SUCCESS';
+    document.getElementById('resultTitle').style.color = '#4ade80';
+    sfx.victory();
+  } else {
+    // Consolation credits: 0.1 credits per damage point dealt
+    reward = Math.max(10, Math.round(state.damageDealt * 0.1));
+    gameSave.addLoss(reward);
+    document.getElementById('resultTitle').innerHTML = 'UNIT OFFLINE';
+    document.getElementById('resultTitle').style.color = '#ef4444';
+  }
+  document.getElementById('resultDmg').innerText = Math.round(state.damageDealt);
+  document.getElementById('resultTime').innerText = `${m}:${s.toString().padStart(2,'0')}`;
+  document.getElementById('resultReward').innerText = `+${reward}`;
+  document.getElementById('resultDiffBonus').innerHTML = `${diff.label} ×${diff.rewardMult}`;
+  document.getElementById('resultDiffBonus').style.color = diff.color;
+  gameSave.save();
+  showScreen('resultsScreen');
+}
+
+function rematch(){ startMatch(state.levelIdx); }
+function nextMatch(){ 
+  if (state.levelIdx + 1 < LEVELS.length) {
+    startMatch(state.levelIdx + 1);
+  } else {
+    goMenu();
+  }
+}
+function showScreen(id){
+  document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
+  document.getElementById(id).classList.remove('hidden');
+}
+function goMenu(){ state.active = false; showScreen('menuScreen'); updateMenuUI(); }
+function goDifficulty(){ showScreen('difficultyScreen'); buildDifficultyGrid(); }
+function goArena(){ if (!state.difficulty) return; showScreen('arenaScreen'); buildArenaList(); }
+function goShop(){ showScreen('shopScreen'); buildShop(); switchTab('stats'); }
+function goHowTo(){ showScreen('howToScreen'); }
+
+function setUsername(){
+  const input = document.getElementById('usernameInput');
+  const name = input.value.trim();
+  if (name.length < 2) return;
+  gameSave.setUsername(name);
+  goMenu();
+}
+function resetUsername(){
+  localStorage.removeItem('neonFury_player_v4');
+  gameSave.load();
+  showScreen('usernameScreen');
+}
+
+function updateMenuUI(){
+  const p = gameSave.player;
+  document.getElementById('usernameDisplay').innerText = p.username || 'PILOT';
+  document.getElementById('menuCredits').innerText = p.credits.toLocaleString();
+  document.getElementById('playerStats').innerHTML = `Wins: ${p.wins} | Losses: ${p.losses}`;
+  document.getElementById('statPower').innerText = getPlayerBaseDamage();
+  document.getElementById('statArmor').innerText = Math.round((1 - getPlayerDamageReduction()) * 100) + '%';
+  document.getElementById('statSpeed').innerText = getPlayerSpeedMult().toFixed(2) + '×';
+  document.getElementById('statHealth').innerText = 100 + (p.stats.health - 1) * 15;
+  document.getElementById('playerNameLabel').innerText = p.username || 'PILOT';
+}
+
+function buildDifficultyGrid(){
+  const grid = document.getElementById('difficultyGrid');
+  grid.innerHTML = '';
+  for (const key of ['novice','amateur','pro','expert','legend']){
+    const d = DIFFICULTIES[key];
+    const card = document.createElement('div');
+    card.className = 'diff-card panel-dark p-5 flex flex-col';
+    card.style.color = d.color;
+    card.dataset.diff = key;
+    card.innerHTML = `<div class="corner"></div><h3 style="font-size:clamp(13px,2.5vw,18px); font-weight:bold; font-family:'Orbitron', sans-serif;">${d.label}</h3><p style="font-size:clamp(10px,1.5vw,12px); color:#999; margin-top:6px;">${d.desc}</p>`;
+    card.addEventListener('click', () => selectDifficulty(key));
+    grid.appendChild(card);
+  }
+}
+function selectDifficulty(key){
+  state.difficulty = key;
+  document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`[data-diff="${key}"]`).classList.add('selected');
+  document.getElementById('proceedBtn').disabled = false;
+}
+function buildArenaList(){
+  const diff = DIFFICULTIES[state.difficulty];
+  document.getElementById('arenaList').innerHTML = LEVELS.map((a, i) => {
+    const hp = Math.round(a.baseHP * diff.hpMult);
+    const reward = Math.round(a.reward * diff.rewardMult);
+    return `<div class="panel p-5 cursor-pointer hover:border-cyan-400" onclick="startMatch(${i})"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold;">${a.name}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px);" class="text-sm"><span>REWARD +${reward}</span><span>ENEMY CORE ${hp}</span></div></div>`;
+  }).join('');
+}
+function buildShop(){
+  document.getElementById('creditAmount').innerText = gameSave.player.credits.toLocaleString();
+  buildUpgrades();
+  buildGear();
+}
+function buildUpgrades(){
+  const root = document.getElementById('statsTab');
+  root.innerHTML = '';
+  const upgradeColors = {
+    'power': { icon: '⚡', color: '#ff4d4d', glow: '#ff4d4d' },
+    'armor': { icon: '🛡️', color: '#1e90ff', glow: '#1e90ff' },
+    'speed': { icon: '⚙️', color: '#00ff88', glow: '#00ff88' },
+    'health': { icon: '❤️', color: '#ff6b6b', glow: '#ff6b6b' }
+  };
+  
+  for (const u of UPGRADES){
+    const lvl = gameSave.player.stats[u.key];
+    const cost = Math.round(u.baseCost * Math.pow(1.4, lvl - 1));
+    const maxed = lvl >= u.maxLvl;
+    const colors = upgradeColors[u.key];
+    const progress = (lvl / u.maxLvl) * 100;
+    
+    const div = document.createElement('div');
+    div.className = 'upgrade-card panel relative overflow-hidden';
+    div.style.cssText = `
+      background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(10,14,35,0.4));
+      border: 1.5px solid ${maxed ? colors.color : 'rgba(30,144,255,0.2)'};
+      padding: 16px;
+      border-radius: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      transition: all 0.3s ease;
+      ${maxed ? `box-shadow: 0 0 16px ${colors.glow}40;` : ''}
+    `;
+    
+    div.innerHTML = `
+      <div style="flex: 1; min-width: 0;">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 8px;">
+          <span style="font-size: clamp(18px, 3vw, 24px);">${u.icon}</span>
+          <div>
+            <b style="font-size: clamp(12px,2vw,14px); display: block; color: #fff;">${u.name}</b>
+            <div style="font-size: clamp(10px,1.5vw,12px); color: ${colors.color}; font-weight: bold;">Level ${lvl}/${u.maxLvl}</div>
+          </div>
+        </div>
+        <p style="font-size: clamp(9px,1.3vw,11px); color: #888; margin: 0;">${u.desc}</p>
+        <div style="background: rgba(0,0,0,0.4); height: 4px; border-radius: 2px; margin-top: 8px; overflow: hidden;">
+          <div style="height: 100%; background: linear-gradient(90deg, ${colors.color}, ${colors.glow}); width: ${progress}%; transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+      <button data-upgrade="${u.key}" style="
+        padding: 12px 20px;
+        background: ${maxed ? 'rgba(0,0,0,0.5)' : `linear-gradient(135deg, ${colors.color}, ${colors.glow})`};
+        color: ${maxed ? '#666' : '#000'};
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+        font-size: clamp(10px,1.5vw,12px);
+        cursor: ${maxed ? 'not-allowed' : 'pointer'};
+        white-space: nowrap;
+        transition: all 0.2s;
+        text-transform: uppercase;
+        box-shadow: ${maxed ? 'none' : `0 4px 12px ${colors.glow}40`};
+      "
+      ${maxed ? 'disabled' : ''}
+      onmouseover="${maxed ? '' : `this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px ${colors.glow}60';`}"
+      onmouseout="${maxed ? '' : `this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px ${colors.glow}40';`}">
+        ${maxed ? '✓ MAXED' : cost + ' cr'}
+      </button>
+    `;
+    root.appendChild(div);
+  }
+  root.querySelectorAll('[data-upgrade]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.upgrade;
+      const u = UPGRADES.find(x => x.key === key);
+      const lvl = gameSave.player.stats[key];
+      const cost = Math.round(u.baseCost * Math.pow(1.4, lvl - 1));
+      if (!gameSave.spendCredits(cost)) return;
+      gameSave.upgradeStat(key);
+      buildShop();
+      updateMenuUI();
+    });
+  });
+}
+function buildGear(){
+  const grid = document.getElementById('gearGrid');
+  grid.innerHTML = '';
+  const tierColors = {
+    'rare': { bg: 'rgba(30,144,255,0.15)', border: '#1e90ff', glow: '#00d9ff', text: '#1e90ff' },
+    'epic': { bg: 'rgba(255,0,255,0.15)', border: '#ff00ff', glow: '#ff00ff', text: '#ff00ff' },
+    'legendary': { bg: 'rgba(255,170,0,0.15)', border: '#ffaa00', glow: '#ffaa00', text: '#ffaa00' }
+  };
+  const typeIcons = {
+    'weapon': '⚡',
+    'armor': '🛡️',
+    'movement': '⚙️'
+  };
+  const typeEmojis = {
+    'weapon': '🔫',
+    'armor': '🤖',
+    'movement': '💨'
+  };
+  for (const [key, gear] of Object.entries(GEAR)){
+    const purchased = gameSave.player.purchasedGear.includes(key);
+    const equipped = gameSave.player.equipped[gear.type] === key;
+    const tc = tierColors[gear.tier];
+    
+    let statDisplay = '';
+    let statValue = 0;
+    if (gear.damage) {
+      statDisplay = `+${gear.damage}`;
+      statValue = gear.damage;
+    } else if (gear.defense) {
+      statDisplay = `+${Math.round(gear.defense * 100)}%`;
+      statValue = gear.defense;
+    } else if (gear.speed) {
+      statDisplay = `+${Math.round(gear.speed * 100)}%`;
+      statValue = gear.speed;
+    }
+    
+    const div = document.createElement('div');
+    div.className = 'panel relative overflow-hidden transition-all hover:shadow-lg';
+    div.style.cssText = `
+      background: linear-gradient(135deg, ${tc.bg}, rgba(10,14,35,0.5));
+      border: 2px solid ${purchased ? tc.border : 'rgba(30,144,255,0.2)'};
+      padding: 16px;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      ${equipped ? `box-shadow: 0 0 24px ${tc.glow}, inset 0 0 12px ${tc.glow}40;` : ''}
+    `;
+    
+    div.innerHTML = `
+      <div style="position: absolute; top: -20px; right: -20px; width: 80px; height: 80px; background: ${tc.glow}20; border-radius: 50%; filter: blur(20px);"></div>
+      
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; position: relative; z-index: 2;">
+        <div>
+          <div style="display: inline-block; background: ${tc.bg}; padding: 6px 12px; border-radius: 6px; border: 1px solid ${tc.border}; margin-bottom: 8px;">
+            <span style="color: ${tc.text}; font-weight: bold; text-transform: uppercase; font-size: clamp(8px,1.3vw,10px);">${gear.tier}</span>
+          </div>
+          <div style="font-size: clamp(13px,2.2vw,16px); font-weight: bold; color: #fff; display: flex; align-items: center; gap: 6px;">
+            <span>${typeEmojis[gear.type]}</span>
+            <span>${gear.name}</span>
+          </div>
+        </div>
+        ${equipped ? `<div style="background: ${tc.glow}; color: #000; padding: 4px 8px; border-radius: 4px; font-size: clamp(8px,1.3vw,10px); font-weight: bold; animation: pulse 2s infinite;">✓ ACTIVE</div>` : ''}
+      </div>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; position: relative; z-index: 2;">
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid ${tc.border}40;">
+          <div style="font-size: clamp(8px,1.2vw,9px); color: #999; text-transform: uppercase; margin-bottom: 4px;">Bonus</div>
+          <div style="font-size: clamp(14px,2.5vw,18px); font-weight: bold; color: ${tc.text};">${typeIcons[gear.type]} ${statDisplay}</div>
+        </div>
+        <div style="background: rgba(0,0,0,0.3); padding: 10px; border-radius: 8px; border: 1px solid ${tc.border}40;">
+          <div style="font-size: clamp(8px,1.2vw,9px); color: #999; text-transform: uppercase; margin-bottom: 4px;">Type</div>
+          <div style="font-size: clamp(11px,2vw,13px); font-weight: bold; color: #00ff88; text-transform: capitalize;">${gear.type}</div>
+        </div>
+      </div>
+      
+      <div style="position: relative; z-index: 2;">
+        <button data-gear="${key}" style="
+          width: 100%;
+          padding: 12px 16px;
+          background: linear-gradient(135deg, ${tc.glow}, ${tc.border});
+          color: #000;
+          border: none;
+          border-radius: 8px;
+          font-weight: bold;
+          font-size: clamp(10px,1.5vw,12px);
+          cursor: pointer;
+          transition: all 0.2s;
+          text-transform: uppercase;
+          box-shadow: 0 4px 12px ${tc.glow}40;
+        " 
+        onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 8px 20px ${tc.glow}60';"
+        onmouseout="this.style.transform='translateY(0)'; this.style.boxShadow='0 4px 12px ${tc.glow}40';">
+          ${purchased ? (equipped ? '🔓 UNEQUIP' : '⚡ EQUIP') : `💰 BUY: ${gear.cost}cr`}
+        </button>
+      </div>
+    `;
+    grid.appendChild(div);
+  }
+  grid.querySelectorAll('[data-gear]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const key = btn.dataset.gear;
+      const gear = GEAR[key];
+      const purchased = gameSave.player.purchasedGear.includes(key);
+      const equipped = gameSave.player.equipped[gear.type] === key;
+      if (!purchased){
+        if (gameSave.spendCredits(gear.cost)){
+          gameSave.player.purchasedGear.push(key);
+          gameSave.player.equipped[gear.type] = key;
+        }
+      } else {
+        gameSave.player.equipped[gear.type] = equipped ? null : key;
+      }
+      gameSave.save();
+      buildShop();
+      updateMenuUI();
+    });
+  });
+}
+function switchTab(tab){
+  document.getElementById('statsTab').classList.toggle('hidden', tab !== 'stats');
+  document.getElementById('gearTab').classList.toggle('hidden', tab !== 'gear');
+}
+function togglePause(){
+  if (!state.active) return;
+  state.paused = !state.paused;
+  document.getElementById('pauseOverlay').classList.toggle('hidden', !state.paused);
+  if (state.paused) state.elapsedAtPause += performance.now() - state.startTime;
+  else state.startTime = performance.now();
+}
+function quitMatch(){
+  state.active = false; state.paused = false;
+  document.getElementById('pauseOverlay').classList.add('hidden');
+  goMenu();
+}
+
+function bindControls(){
+  const hold = (id, onDown, onUp) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); onDown(); }, { passive:false });
+    el.addEventListener('touchend',   (e) => { e.preventDefault(); onUp(); },   { passive:false });
+    el.addEventListener('mousedown', () => { if (!('ontouchstart' in window)) onDown(); });
+    el.addEventListener('mouseup',   () => { if (!('ontouchstart' in window)) onUp(); });
+  };
+  const tap = (id, fn) => {
+    const el = document.getElementById(id); if (!el) return;
+    el.addEventListener('touchstart', (e) => { e.preventDefault(); fn(); }, { passive:false });
+    el.addEventListener('click', () => { if (!('ontouchstart' in window)) fn(); });
+  };
+
+  tap('btnPause', togglePause);
+  tap('btnResume', togglePause);
+  tap('btnQuitMatch', quitMatch);
+  tap('btnSetUser', setUsername);
+  tap('btnResultMenu', goMenu);
+  tap('btnResultRematch', rematch);
+  tap('btnNextMatch', nextMatch);
+
+  hold('btnLeft', () => state.input.left = true,  () => state.input.left = false);
+  hold('btnRight', () => state.input.right = true, () => state.input.right = false);
+  tap('btnJump',   () => state.input.jump = true);
+  tap('btnDash',   doPlayerDash);
+  tap('btnAttack', doPlayerAttack);
+  tap('btnDefend', doPlayerDefend);
+  tap('btnKick', doPlayerKick);
+
+  window.addEventListener('keydown', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') state.input.left = true;
+    if (e.key === 'ArrowRight' || e.key === 'd') state.input.right = true;
+    if (e.key === 'ArrowUp' || e.key === 'w' || e.key === ' ') state.input.jump = true;
+    if (e.key === 'Shift') doPlayerDash();
+    if (e.key === 'j') doPlayerAttack();
+    if (e.key === 'k') doPlayerDefend();
+    if (e.key === 'l') doPlayerKick();
+    if (e.key === 'Escape' && state.active) togglePause();
+  });
+  window.addEventListener('keyup', e => {
+    if (e.key === 'ArrowLeft' || e.key === 'a') state.input.left = false;
+    if (e.key === 'ArrowRight' || e.key === 'd') state.input.right = false;
+  });
+}
+
+bindControls();
+initAudio();
+
+if (!gameSave.player.username) showScreen('usernameScreen');
+else { updateMenuUI(); showScreen('menuScreen'); }
+
+window.startMatch = startMatch; window.rematch = rematch; window.goMenu = goMenu;
+window.goDifficulty = goDifficulty; window.goArena = goArena; window.goShop = goShop;
+window.goHowTo = goHowTo; window.setUsername = setUsername; window.resetUsername = resetUsername;
+window.switchTab = switchTab; window.togglePause = togglePause; window.quitMatch = quitMatch;
+</script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
+</body>
+</html>
