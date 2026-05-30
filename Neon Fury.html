@@ -444,7 +444,7 @@ import * as THREE from 'three';
 class GameSave {
   constructor(){ this.load(); }
   load(){
-    const raw = localStorage.getItem('neonFury_player_v4');
+    const raw = localStorage.getItem('neonFury_player_v5');
     this.player = raw ? JSON.parse(raw) : this.defaultPlayer();
     const def = this.defaultPlayer();
     for (const k of Object.keys(def)) if (this.player[k]===undefined) this.player[k]=def[k];
@@ -452,6 +452,7 @@ class GameSave {
     if (!this.player.equipped) this.player.equipped=def.equipped;
     if (!this.player.purchasedGear) this.player.purchasedGear=def.purchasedGear;
     if (!this.player.gearUpgrades) this.player.gearUpgrades=def.gearUpgrades;
+    if (!this.player.levelWins) this.player.levelWins=def.levelWins;
     // Merge missing stat keys from default
     for (const k of Object.keys(def.stats)) {
       if (this.player.stats[k] === undefined) this.player.stats[k] = def.stats[k];
@@ -464,15 +465,18 @@ class GameSave {
       equipped:{weapon:null,armor:null,movement:null},
       purchasedGear:[],
       gearUpgrades:{},
+      levelWins:{},
       legendBeaten:false
     };
   }
-  save(){ localStorage.setItem('neonFury_player_v4', JSON.stringify(this.player)); }
+  save(){ localStorage.setItem('neonFury_player_v5', JSON.stringify(this.player)); }
   setUsername(name){ this.player.username = name.toUpperCase().substring(0,20); this.save(); }
   addCredits(n){ this.player.credits += n; this.save(); }
   spendCredits(n){ if(this.player.credits<n) return false; this.player.credits-=n; this.save(); return true; }
   addWin(r){ this.player.wins++; this.player.winStreak++; this.addCredits(r); }
   addLoss(consolationCredits = 0){ this.player.losses++; this.player.winStreak = 0; if(consolationCredits > 0) this.addCredits(consolationCredits); else this.save(); }
+  setLevelWin(levelIdx){ this.player.levelWins[levelIdx] = true; this.save(); }
+  hasWonLevel(levelIdx){ return this.player.levelWins[levelIdx] === true; }
   upgradeStat(stat){ this.player.stats[stat]++; this.save(); }
   upgradeGear(gearKey){ 
     if (!this.player.gearUpgrades[gearKey]) this.player.gearUpgrades[gearKey] = 0;
@@ -499,16 +503,16 @@ const DIFFICULTIES = {
 };
 
 const LEVELS = [
-  {name:'GRID RECON',baseHP:120,reward:200,enemyType:'balanced',color:0x66ff00,story:'Test your reflexes against simple drones.',isBoss:false},
-  {name:'IRON FORGE',baseHP:150,reward:300,enemyType:'balanced',color:0x99ff00,story:'Crush the factory sentinels.',isBoss:false},
-  {name:'CHROME CITY STREETS',baseHP:360,reward:600,enemyType:'striker',color:0xffff00,story:'Face the CHROME GUARDIAN—apex of tier one.',isBoss:true},
-  {name:'NEON WASTELAND',baseHP:210,reward:500,enemyType:'defender',color:0xffbb00,story:'Navigate the neon ruins.',isBoss:false},
-  {name:'PLASMA SUB-CORE',baseHP:240,reward:650,enemyType:'tactical',color:0xff6600,story:'Breach the plasma chambers.',isBoss:false},
-  {name:'VOID TERMINAL',baseHP:720,reward:1400,enemyType:'balanced',color:0xff3300,story:'Confront the VOID SENTINEL—tier two awaits.',isBoss:true},
-  {name:'NEXUS OVERFLOW',baseHP:315,reward:1000,enemyType:'striker',color:0xcc0000,story:'Battle through the overloaded nexus.',isBoss:false},
-  {name:'SINGULARITY RIFT',baseHP:360,reward:1250,enemyType:'tactical',color:0x990000,story:'Enter the dimensional rift.',isBoss:false},
-  {name:'INFINITY LOOP',baseHP:1440,reward:2500,enemyType:'defender',color:0x660000,story:'Defeat the INFINITY ARBITER—the final guardian.',isBoss:true},
-  {name:'TRANSCENDENCE LAYER',baseHP:2880,reward:5000,enemyType:'legend',color:0x330000,story:'Face the TRANSCENDENT—your ultimate test.',isBoss:true}
+  {name:'GRID RECON',baseHP:180,reward:200,enemyType:'balanced',color:0x66ff00,story:'Test your reflexes against enhanced drones.',isBoss:false},
+  {name:'IRON FORGE',baseHP:225,reward:300,enemyType:'balanced',color:0x99ff00,story:'Crush the upgraded factory sentinels.',isBoss:false},
+  {name:'CHROME CITY STREETS',baseHP:540,reward:600,enemyType:'striker',color:0xffff00,story:'Face the CHROME GUARDIAN—apex of tier one.',isBoss:true},
+  {name:'NEON WASTELAND',baseHP:315,reward:500,enemyType:'defender',color:0xffbb00,story:'Navigate the neon ruins with enhanced defenses.',isBoss:false},
+  {name:'PLASMA SUB-CORE',baseHP:360,reward:650,enemyType:'tactical',color:0xff6600,story:'Breach the plasma chambers with stronger units.',isBoss:false},
+  {name:'VOID TERMINAL',baseHP:1080,reward:1400,enemyType:'balanced',color:0xff3300,story:'Confront the VOID SENTINEL—tier two awaits.',isBoss:true},
+  {name:'NEXUS OVERFLOW',baseHP:472,reward:1000,enemyType:'striker',color:0xcc0000,story:'Battle through the overloaded nexus.',isBoss:false},
+  {name:'SINGULARITY RIFT',baseHP:540,reward:1250,enemyType:'tactical',color:0x990000,story:'Enter the dimensional rift.',isBoss:false},
+  {name:'INFINITY LOOP',baseHP:2160,reward:2500,enemyType:'defender',color:0x660000,story:'Defeat the INFINITY ARBITER—the final guardian.',isBoss:true},
+  {name:'TRANSCENDENCE LAYER',baseHP:4320,reward:5000,enemyType:'legend',color:0x330000,story:'Face the TRANSCENDENT—your ultimate test.',isBoss:true}
 ];
 
 const GEAR = {
@@ -2040,6 +2044,7 @@ function endMatch(won){
   if (won){
     reward = Math.ceil(LEVELS[state.levelIdx].reward * diff.rewardMult);
     gameSave.addWin(reward);
+    gameSave.setLevelWin(state.levelIdx);
     document.getElementById('resultTitle').innerHTML = 'MISSION SUCCESS';
     document.getElementById('resultTitle').style.color = '#4ade80';
     sfx.victory();
@@ -2061,7 +2066,7 @@ function endMatch(won){
 
 function rematch(){ startMatch(state.levelIdx); }
 function nextMatch(){ 
-  if (state.levelIdx + 1 < LEVELS.length) {
+  if (state.levelIdx + 1 < LEVELS.length && gameSave.hasWonLevel(state.levelIdx)) {
     startMatch(state.levelIdx + 1);
   } else {
     goMenu();
@@ -2085,6 +2090,7 @@ function setUsername(){
   goMenu();
 }
 function resetUsername(){
+  localStorage.removeItem('neonFury_player_v5');
   localStorage.removeItem('neonFury_player_v4');
   gameSave.load();
   showScreen('usernameScreen');
@@ -2127,11 +2133,20 @@ function selectDifficulty(key){
 }
 function buildArenaList(){
   const diff = DIFFICULTIES[state.difficulty];
-  document.getElementById('arenaList').innerHTML = LEVELS.map((a, i) => {
+  const arenaListHtml = LEVELS.map((a, i) => {
     const hp = Math.ceil(a.baseHP * diff.hpMult);
     const reward = Math.ceil(a.reward * diff.rewardMult);
-    return `<div class="panel p-5 cursor-pointer hover:border-cyan-400" onclick="startMatch(${i})"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold;">${a.name}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px);" class="text-sm"><span>REWARD +${reward}</span><span>ENEMY CORE ${hp}</span></div></div>`;
+    const won = gameSave.hasWonLevel(i);
+    const isLocked = i > 0 && !gameSave.hasWonLevel(i - 1);
+    
+    if (isLocked) {
+      return `<div class="panel p-5" style="opacity:0.5; filter:grayscale(100%); cursor:not-allowed; background:rgba(0,0,0,0.3);"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold; color:#999;">${a.name}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px); color:#999;" class="text-sm"><span>🔒 WIN LEVEL ${i} TO UNLOCK</span><span>ENEMY CORE ${hp}</span></div></div>`;
+    } else {
+      const checkmark = won ? ' ✓' : '';
+      return `<div class="panel p-5 cursor-pointer hover:border-cyan-400 transition-all" style="${won ? 'border-color:#00ff88;' : ''}" onclick="startMatch(${i})"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold;">${a.name}${checkmark}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px);" class="text-sm"><span>REWARD +${reward}</span><span>ENEMY CORE ${hp}</span></div></div>`;
+    }
   }).join('');
+  document.getElementById('arenaList').innerHTML = arenaListHtml;
 }
 let currentGearTab = 'weapon';
 function buildShop(){
