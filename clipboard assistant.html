@@ -10,6 +10,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.23/mammoth.browser.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
@@ -285,6 +286,35 @@
       background: rgba(8,145,178,0.1);
       color: #0891B2;
     }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .file-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(79, 172, 254, 0.2);
+      color: #4FACFE;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(79, 172, 254, 0.3);
+    }
+
+    body.light-mode .file-badge {
+      background: rgba(79, 172, 254, 0.1);
+      border-color: rgba(79, 172, 254, 0.2);
+    }
   </style>
 </head>
 <body class="min-h-screen flex flex-col justify-between p-4 md:p-8 dark-mode">
@@ -318,6 +348,10 @@
       </div>
       
       <div class="flex items-center gap-4">
+        <div id="loadedFile" class="file-badge hidden">
+          <i class="fa-solid fa-file-check"></i>
+          <span id="fileName">Document</span>
+        </div>
         <div class="text-xs font-mono text-slate-400 bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/5 flex items-center gap-2">
           <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Ready
         </div>
@@ -347,7 +381,7 @@
           <textarea 
             id="textArea" 
             class="w-full h-96 bg-black/40 p-5 text-slate-200 border border-white/5 rounded-2xl focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/20 outline-none resize-none font-mono text-sm leading-relaxed mb-4 transition-all"
-            placeholder="Paste configs, write outlines, or drop large text here..."
+            placeholder="Paste configs, write outlines, drop documents, or paste large text here..."
           ></textarea>
 
           <div class="flex flex-col sm:flex-row gap-3">
@@ -364,6 +398,24 @@
             >
               <i class="fa-solid fa-arrow-down-long text-yellow-500"></i> Paste
             </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-import text-yellow-500"></i> Upload & Import
+          </span>
+          
+          <div class="space-y-3">
+            <div class="file-input-wrapper">
+              <label class="w-full btn-gold py-3 px-5 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
+                <i class="fa-solid fa-upload"></i> Choose File
+                <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.doc,.md,.json" onchange="handleFileUpload(event)">
+              </label>
+            </div>
+            <div class="text-xs text-slate-400 text-center">
+              <span class="text-slate-500">Supports:</span> TXT, PDF, DOCX, DOC, MD, JSON
+            </div>
           </div>
         </div>
 
@@ -400,12 +452,16 @@
 
         <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
           <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-file-export text-yellow-500"></i> Export Options
+            <i class="fa-solid fa-download text-yellow-500"></i> Export
           </span>
-          <div class="space-y-3">
-            <div class="flex items-center gap-2">
-              <input type="text" id="exportFilename" placeholder="filename" class="flex-1 bg-black/40 border border-white/5 rounded-xl p-3 text-xs text-slate-200 placeholder-slate-400 focus:border-yellow-500/50 outline-none">
-              <select id="encodingSelect" class="bg-black/40 border border-white/5 rounded-xl p-3 text-xs text-slate-200 focus:border-yellow-500/50 outline-none">
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs text-slate-400 font-bold mb-2 block">Filename</label>
+              <input type="text" id="exportFilename" placeholder="stackfolio_export" class="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-400 focus:border-yellow-500/50 outline-none transition-all">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-bold mb-2 block">Encoding (Text)</label>
+              <select id="encodingSelect" class="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-slate-200 focus:border-yellow-500/50 outline-none transition-all">
                 <option value="utf-8">UTF-8</option>
                 <option value="utf-16">UTF-16</option>
                 <option value="ascii">ASCII</option>
@@ -549,14 +605,18 @@
       exportFilename: document.getElementById('exportFilename'),
       encodingSelect: document.getElementById('encodingSelect'),
       markdownPreviewContainer: document.getElementById('markdownPreviewContainer'),
-      markdownPreview: document.getElementById('markdownPreview')
+      markdownPreview: document.getElementById('markdownPreview'),
+      fileInput: document.getElementById('fileInput'),
+      loadedFile: document.getElementById('loadedFile'),
+      fileName: document.getElementById('fileName')
     };
 
     const state = {
       history: [''],
       historyIndex: 0,
       lastSave: Date.now(),
-      toastTimeout: null
+      toastTimeout: null,
+      currentFileName: null
     };
 
     function init() {
@@ -644,6 +704,102 @@
       }).catch(() => {
         showToast('Paste failed', 'exclamation');
       });
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const fileType = file.type;
+      const fileName = file.name;
+      state.currentFileName = fileName;
+
+      if (fileName.endsWith('.txt')) {
+        readTextFile(file);
+      } else if (fileName.endsWith('.md')) {
+        readTextFile(file);
+      } else if (fileName.endsWith('.json')) {
+        readTextFile(file);
+      } else if (fileName.endsWith('.pdf')) {
+        readPDFFile(file);
+      } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+        readDocxFile(file);
+      } else {
+        showToast('Unsupported file type', 'exclamation');
+      }
+    }
+
+    function readTextFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        elements.textArea.value = e.target.result;
+        runStatisticsCalculation();
+        updateHistory();
+        updateFileDisplay();
+        showToast(`Loaded ${file.name}`, 'check');
+      };
+      reader.onerror = () => {
+        showToast('Failed to read file', 'exclamation');
+      };
+      reader.readAsText(file);
+    }
+
+    function readPDFFile(file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const pdfjsLib = window.pdfjsLib;
+          if (!pdfjsLib) {
+            showToast('PDF library not loaded', 'exclamation');
+            return;
+          }
+          const pdf = await pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise;
+          let text = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            text += content.items.map(item => item.str).join('') + '\n';
+          }
+          elements.textArea.value = text;
+          runStatisticsCalculation();
+          updateHistory();
+          updateFileDisplay();
+          showToast(`Loaded ${file.name}`, 'check');
+        } catch (error) {
+          showToast('Failed to parse PDF', 'exclamation');
+        }
+      };
+      reader.onerror = () => {
+        showToast('Failed to read file', 'exclamation');
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function readDocxFile(file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
+          elements.textArea.value = result.value;
+          runStatisticsCalculation();
+          updateHistory();
+          updateFileDisplay();
+          showToast(`Loaded ${file.name}`, 'check');
+        } catch (error) {
+          showToast('Failed to parse DOCX', 'exclamation');
+        }
+      };
+      reader.onerror = () => {
+        showToast('Failed to read file', 'exclamation');
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function updateFileDisplay() {
+      if (state.currentFileName) {
+        elements.fileName.textContent = state.currentFileName;
+        elements.loadedFile.classList.remove('hidden');
+      }
     }
 
     function modifyText(type) {
@@ -984,6 +1140,14 @@
         console.error('Toast error:', error);
       }
     }
+
+    // Add PDF.js library
+    const script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    script.onload = () => {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    };
+    document.head.appendChild(script);
 
     window.addEventListener('DOMContentLoaded', init);
   </script>
