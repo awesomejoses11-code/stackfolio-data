@@ -10,7 +10,6 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.23/mammoth.browser.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
@@ -760,13 +759,18 @@
             const content = await page.getTextContent();
             text += content.items.map(item => item.str).join('') + '\n';
           }
-          elements.textArea.value = text;
-          runStatisticsCalculation();
-          updateHistory();
-          updateFileDisplay();
-          showToast(`Loaded ${file.name}`, 'check');
+          if (text.trim()) {
+            elements.textArea.value = text;
+            runStatisticsCalculation();
+            updateHistory();
+            updateFileDisplay();
+            showToast(`Loaded ${file.name}`, 'check');
+          } else {
+            showToast('PDF is empty or has no extractable text', 'exclamation');
+          }
         } catch (error) {
-          showToast('Failed to parse PDF', 'exclamation');
+          console.error('PDF parse error:', error);
+          showToast(`PDF error: ${error.message}`, 'exclamation');
         }
       };
       reader.onerror = () => {
@@ -779,14 +783,58 @@
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          const result = await mammoth.extractRawText({ arrayBuffer: e.target.result });
-          elements.textArea.value = result.value;
-          runStatisticsCalculation();
-          updateHistory();
-          updateFileDisplay();
-          showToast(`Loaded ${file.name}`, 'check');
+          const zip = new JSZip();
+          const docx = await zip.loadAsync(e.target.result);
+          
+          // Try to get document.xml
+          let documentXml = null;
+          try {
+            documentXml = await docx.file('word/document.xml').async('text');
+          } catch (err) {
+            showToast('Invalid DOCX: no document.xml found', 'exclamation');
+            return;
+          }
+
+          // Parse XML and extract text
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(documentXml, 'text/xml');
+          
+          // Extract all text nodes
+          const textElements = xmlDoc.getElementsByTagName('w:t');
+          let extractedText = '';
+          
+          for (let i = 0; i < textElements.length; i++) {
+            extractedText += textElements[i].textContent;
+          }
+
+          // Also handle paragraph breaks
+          const paragraphs = xmlDoc.getElementsByTagName('w:p');
+          let fullText = '';
+          for (let i = 0; i < paragraphs.length; i++) {
+            const texts = paragraphs[i].getElementsByTagName('w:t');
+            let paraText = '';
+            for (let j = 0; j < texts.length; j++) {
+              paraText += texts[j].textContent;
+            }
+            if (paraText.trim()) {
+              fullText += paraText + '\n';
+            }
+          }
+
+          const finalText = fullText.trim() || extractedText.trim();
+          
+          if (finalText) {
+            elements.textArea.value = finalText;
+            runStatisticsCalculation();
+            updateHistory();
+            updateFileDisplay();
+            showToast(`Loaded ${file.name}`, 'check');
+          } else {
+            showToast('DOCX file is empty or unreadable', 'exclamation');
+          }
         } catch (error) {
-          showToast('Failed to parse DOCX', 'exclamation');
+          console.error('DOCX parse error:', error);
+          showToast(`DOCX error: ${error.message}`, 'exclamation');
         }
       };
       reader.onerror = () => {
@@ -1141,13 +1189,20 @@
       }
     }
 
-    // Add PDF.js library
-    const script = document.createElement('script');
-    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    script.onload = () => {
-      window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    // Initialize PDF.js
+    const pdfScript = document.createElement('script');
+    pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    pdfScript.onload = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
     };
-    document.head.appendChild(script);
+    document.head.appendChild(pdfScript);
+
+    // Ensure mammoth is available
+    if (!window.mammoth && typeof mammoth !== 'undefined') {
+      window.mammoth = mammoth;
+    }
 
     window.addEventListener('DOMContentLoaded', init);
   </script>
