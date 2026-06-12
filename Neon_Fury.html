@@ -79,9 +79,15 @@
 
   .glow-blue  { color:#1e90ff; text-shadow:0 0 12px #1e90ff, 0 0 24px rgba(30,144,255,0.4); }
   .glow-pink  { color:#ff00ff; text-shadow:0 0 12px #ff00ff, 0 0 24px rgba(255,0,255,0.4); }
-  .glow-green { color:#00ff88; text-shadow:0 0 12px #00ff88; }
-  .glow-amber { color:#ffaa00; text-shadow:0 0 12px #ffaa00; }
-  .glow-red   { color:#ff4d4d; text-shadow:0 0 12px #ff4d4d; }
+  .glow-green { color:#00ff88; text-shadow:0 0 12px #00ff88, 0 0 20px rgba(0,255,136,0.4); }
+  .glow-amber { color:#ffaa00; text-shadow:0 0 12px #ffaa00, 0 0 20px rgba(255,170,0,0.4); }
+  .glow-red   { color:#ff4d4d; text-shadow:0 0 12px #ff4d4d, 0 0 20px rgba(255,77,77,0.4); }
+
+  /* Hover effect helpers */
+  .hover-lift { transition: all 0.2s; }
+  .hover-lift:hover { transform: translateY(-2px); }
+  .pulse { animation:pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
 
   .combat-log{
     position:absolute; top:clamp(118px, 24vw, 150px); left:50%; transform:translateX(-50%);
@@ -176,9 +182,6 @@
     z-index:15;
   }
 
-  @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:.5;} }
-  .pulse { animation:pulse 2s infinite; }
-  
   /* Consolidated gear card styles */
   .stat-box{
     background: rgba(0,0,0,0.3);
@@ -222,25 +225,43 @@
     height: 100%;
     background: linear-gradient(135deg, #0a0a1a 0%, #1a0a2e 50%, #0a1a2e 100%);
     z-index: -2;
+    overflow: hidden;
   }
   
   .neon-bg::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
+    inset: 0;
+    background: 
+      radial-gradient(circle at 20% 50%, rgba(138, 43, 226, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, rgba(0, 191, 255, 0.3) 0%, transparent 50%),
+      radial-gradient(circle at 60% 80%, rgba(255, 20, 147, 0.3) 0%, transparent 50%);
+    animation: bgShift 15s ease-in-out infinite;
+  }
+  
+  .neon-bg::after {
+    content: '';
+    position: absolute;
+    inset: 0;
     background: linear-gradient(45deg, 
-      rgba(138, 43, 226, 0.1) 0%, 
-      rgba(0, 191, 255, 0.1) 50%, 
-      rgba(255, 20, 147, 0.1) 100%);
-    animation: bgShift 8s ease-in-out infinite;
+      rgba(138, 43, 226, 0.15) 0%, 
+      rgba(0, 191, 255, 0.15) 50%, 
+      rgba(255, 20, 147, 0.15) 100%);
+    animation: bgRotate 20s linear infinite;
   }
   
   @keyframes bgShift {
-    0%, 100% { transform: scale(1) rotate(0deg); }
-    50% { transform: scale(1.1) rotate(2deg); }
+    0% { transform: scale(1) translate(0, 0); }
+    25% { transform: scale(1.15) translate(10%, -5%); }
+    50% { transform: scale(1.1) translate(-5%, 10%); }
+    75% { transform: scale(1.15) translate(5%, -10%); }
+    100% { transform: scale(1) translate(0, 0); }
+  }
+  
+  @keyframes bgRotate {
+    0% { transform: rotate(0deg); opacity: 0.8; }
+    50% { transform: rotate(180deg); opacity: 1; }
+    100% { transform: rotate(360deg); opacity: 0.8; }
   }
   
   #particleCanvas {
@@ -260,23 +281,25 @@
       0 0 40px #00ffff,
       0 0 80px #8a2be2,
       0 0 120px #8a2be2;
-    animation: titleGlow 2s ease-in-out infinite alternate;
+    animation: titleGlow 3s ease-in-out infinite;
   }
   
   @keyframes titleGlow {
-    from {
+    0%, 100% {
       text-shadow: 
         0 0 10px #00ffff,
         0 0 20px #00ffff,
         0 0 40px #00ffff,
-        0 0 80px #8a2be2;
+        0 0 80px #8a2be2,
+        0 0 120px #8a2be2;
     }
-    to {
+    50% {
       text-shadow: 
         0 0 15px #ff00ff,
         0 0 30px #ff00ff,
         0 0 60px #ff00ff,
-        0 0 100px #00ffff;
+        0 0 100px #00ffff,
+        0 0 150px #ff00ff;
     }
   }
   
