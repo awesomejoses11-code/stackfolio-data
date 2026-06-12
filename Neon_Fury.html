@@ -349,7 +349,7 @@
   </div>
 </div>
 
-<div id="menuScreen" class="screen hidden flex flex-col items-center justify-center p-4 sm:p-8" style="background: transparent; min-height: 100vh; position: relative; z-index: 10; overflow-y: auto; padding-bottom: 60px;">
+<div id="menuScreen" class="screen hidden flex flex-col items-center justify-center p-4 sm:p-8" style="background: rgba(2,2,8,0.95); min-height: 100vh; position: relative; z-index: 10; overflow-y: auto; padding-bottom: 60px;">
   <!-- Header Section -->
   <div style="width: 100%; max-width: min(95vw, 900px); padding: clamp(12px, 3vw, 20px) 0; display: flex; justify-content: space-between; align-items: center; gap: clamp(12px, 2vw, 20px); flex-wrap: wrap; margin-left: auto; margin-right: auto;">
     <!-- Player Info -->
@@ -368,7 +368,7 @@
       <div id="menuCredits" style="color: #ffff00; font-weight: bold; font-size: clamp(16px, 3.5vw, 22px); font-family: 'Space Mono', monospace; text-shadow: 0 0 10px rgba(255, 255, 0, 0.6);">2000</div>
     </div>
     <!-- Logout Button -->
-    <button onclick="resetUsername()" title="Logout" style="background: rgba(255,0,0,0.1); border: 1px solid rgba(255,0,0,0.3); color: #ff6b6b; cursor: pointer; font-size: 24px; padding: 12px 16px; border-radius: 8px; transition: all 0.2s; flex: 0 0 auto;" onmouseover="this.style.background='rgba(255,0,0,0.2)'; this.style.boxShadow='0 0 15px rgba(255,0,0,0.4)';" onmouseout="this.style.background='rgba(255,0,0,0.1)'; this.style.boxShadow='none';"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
+    <button onclick="openLogoutModal()" title="Logout & Settings" style="background: rgba(255,77,77,0.15); border: 1.5px solid rgba(255,77,77,0.4); color: #ff8888; cursor: pointer; font-size: 24px; padding: 12px 16px; border-radius: 8px; transition: all 0.2s; flex: 0 0 auto;" onmouseover="this.style.background='rgba(255,77,77,0.25)'; this.style.boxShadow='0 0 15px rgba(255,77,77,0.5)';" onmouseout="this.style.background='rgba(255,77,77,0.15)'; this.style.boxShadow='none';"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
   </div>
 
   <!-- Title Section -->
@@ -415,7 +415,7 @@
   </div>
 </div>
 
-<div id="difficultyScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
+<div id="difficultyScreen" class="screen hidden flex flex-col p-6" style="background: rgba(2,2,8,0.95); min-height: 100vh;">
   <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
     <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">SELECT DIFFICULTY</h2>
@@ -427,7 +427,7 @@
   </div>
 </div>
 
-<div id="arenaScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
+<div id="arenaScreen" class="screen hidden flex flex-col p-6" style="background: rgba(2,2,8,0.95); min-height: 100vh;">
   <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
     <button onclick="goDifficulty()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">SELECT LEVEL · <span id="arenaDiffLabel" class="text-pink-400">NOVICE</span></h2>
@@ -436,7 +436,7 @@
   <div id="arenaList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 overflow-y-auto pr-2 pb-4"></div>
 </div>
 
-<div id="shopScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
+<div id="shopScreen" class="screen hidden flex flex-col p-6" style="background: rgba(2,2,8,0.95); min-height: 100vh;">
   <div class="flex justify-between items-center border-b border-gray-900 pb-3 mb-4">
     <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">ARMORY LAB</h2>
@@ -459,7 +459,7 @@
   </div>
 </div>
 
-<div id="howToScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
+<div id="howToScreen" class="screen hidden flex flex-col p-6" style="background: rgba(2,2,8,0.95); min-height: 100vh;">
   <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
     <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">HOW TO PLAY</h2>
@@ -477,6 +477,31 @@
     <div>
       <h3 class="font-bold mb-2 text-cyan-400">💥 SPECIAL ATTACKS</h3>
       <p><b>⚡ Speed Punch:</b> Hold Attack (J) for <b>3 seconds</b>. Costs <b>10%</b> energy. Deals <b>1.5×</b> damage.<br><b>💨 Drop Kick:</b> Hold Kick (L) for <b>3 seconds</b>. Costs <b>10%</b> energy. Deals <b>1.5×</b> normal kick damage (4x total). Both special attacks apply combo multipliers and can chain with other attacks!</p>
+    </div>
+  </div>
+</div>
+
+<!-- ===== LOGOUT MODAL ===== -->
+<div id="logoutModal" class="screen hidden flex items-center justify-center" style="background:rgba(0,0,0,.92); z-index:60; backdrop-filter:blur(4px);">
+  <div class="panel p-8 text-center" style="background: linear-gradient(135deg, rgba(10,14,35,0.98), rgba(5,7,18,0.98)); max-width: 380px; border: 2px solid rgba(30,144,255,0.3);">
+    <h2 class="arcade-font glow-blue" style="font-size:clamp(24px,4vw,32px); margin-bottom:8px; letter-spacing:2px;">⚠️ LOGOUT</h2>
+    <p style="color:#aaa; font-size:clamp(13px,2vw,15px); margin-bottom:24px; line-height:1.5;">What would you like to do?</p>
+    
+    <div style="display:flex; flex-direction:column; gap:12px;">
+      <!-- Logout Button -->
+      <button id="btnLogout" style="width:100%; padding:14px; background:linear-gradient(135deg,rgba(79,70,229,0.6),rgba(30,144,255,0.6)); color:#fff; border:1.5px solid rgba(79,70,229,0.8); border-radius:8px; font-weight:bold; font-size:clamp(12px,2vw,14px); cursor:pointer; text-transform:uppercase; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,rgba(79,70,229,0.8),rgba(30,144,255,0.8))'; this.style.boxShadow='0 0 16px rgba(79,70,229,0.6)';" onmouseout="this.style.background='linear-gradient(135deg,rgba(79,70,229,0.6),rgba(30,144,255,0.6))'; this.style.boxShadow='none';">
+        🚪 LOGOUT (KEEP PROGRESS)
+      </button>
+      
+      <!-- Reset Button -->
+      <button id="btnReset" style="width:100%; padding:14px; background:linear-gradient(135deg,rgba(255,77,77,0.5),rgba(220,38,38,0.5)); color:#ff6b6b; border:1.5px solid rgba(255,77,77,0.7); border-radius:8px; font-weight:bold; font-size:clamp(12px,2vw,14px); cursor:pointer; text-transform:uppercase; transition:all 0.2s;" onmouseover="this.style.background='linear-gradient(135deg,rgba(255,77,77,0.7),rgba(220,38,38,0.7))'; this.style.boxShadow='0 0 16px rgba(255,77,77,0.6)';" onmouseout="this.style.background='linear-gradient(135deg,rgba(255,77,77,0.5),rgba(220,38,38,0.5))'; this.style.boxShadow='none';">
+        🗑️ RESET ALL DATA
+      </button>
+      
+      <!-- Cancel Button -->
+      <button id="btnCancelLogout" style="width:100%; padding:14px; background:rgba(100,100,120,0.4); color:#fff; border:1.5px solid rgba(100,100,150,0.4); border-radius:8px; font-weight:bold; font-size:clamp(12px,2vw,14px); cursor:pointer; text-transform:uppercase; transition:all 0.2s;" onmouseover="this.style.background='rgba(100,100,150,0.6)'; this.style.borderColor='rgba(100,100,200,0.6)';" onmouseout="this.style.background='rgba(100,100,120,0.4)'; this.style.borderColor='rgba(100,100,150,0.4)';">
+        ❌ CANCEL
+      </button>
     </div>
   </div>
 </div>
@@ -2478,6 +2503,29 @@ function goArena(){ if (!state.difficulty) return; showScreen('arenaScreen'); bu
 function goShop(){ showScreen('shopScreen'); buildShop(); switchTab('stats'); switchGearTab('weapon'); }
 function goHowTo(){ showScreen('howToScreen'); }
 
+function openLogoutModal(){
+  showScreen('logoutModal');
+}
+
+function logout(){
+  // Logout without clearing data - only clear username to go back to username screen
+  gameSave.player.username = '';
+  gameSave.save();
+  selectedCharacter = 'striker';
+  showScreen('usernameScreen');
+  setTimeout(() => buildCharacterGrid(), 50);
+}
+
+function reset(){
+  // Reset all data completely
+  localStorage.removeItem('neonFury_player_v5');
+  localStorage.removeItem('neonFury_player_v4');
+  gameSave.load();
+  selectedCharacter = 'striker';
+  showScreen('usernameScreen');
+  setTimeout(() => buildCharacterGrid(), 50);
+}
+
 let selectedCharacter = 'striker';
 
 function buildCharacterGrid(){
@@ -2971,6 +3019,11 @@ function bindControls(){
   tap('btnResultMenu', goMenu);
   tap('btnResultRematch', rematch);
   tap('btnNextMatch', nextMatch);
+  
+  // Logout Modal Buttons
+  tap('btnLogout', logout);
+  tap('btnReset', reset);
+  tap('btnCancelLogout', goMenu);
 
   hold('btnLeft', () => state.input.left = true,  () => state.input.left = false);
   hold('btnRight', () => state.input.right = true, () => state.input.right = false);
@@ -3110,6 +3163,7 @@ window.goDifficulty = goDifficulty; window.goArena = goArena; window.goShop = go
 window.goHowTo = goHowTo; window.setUsername = setUsername; window.resetUsername = resetUsername;
 window.switchTab = switchTab; window.switchGearTab = switchGearTab; window.togglePause = togglePause; window.quitMatch = quitMatch;
 window.toggleHybridMode = toggleHybridMode; window.updateWeaponModeBadge = updateWeaponModeBadge;
+window.openLogoutModal = openLogoutModal; window.logout = logout; window.reset = reset;
 </script>
 </body>
 </html>
