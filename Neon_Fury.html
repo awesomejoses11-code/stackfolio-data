@@ -307,20 +307,20 @@
 <div class="scanlines"></div>
 
 <!-- ===================== UI SCREENS ===================== -->
-<div id="usernameScreen" class="screen flex items-center justify-center p-4 sm:p-8" style="background:linear-gradient(135deg,#030105,#070212); overflow-y:auto;">
-  <div class="panel p-6 sm:p-12 max-w-2xl w-full text-center" style="background:linear-gradient(135deg, rgba(10,14,35,0.95), rgba(5,7,18,0.95));">
-    <i class="fa-solid fa-user-astronaut glow-blue block mb-4" style="animation:pulse 2s ease-in-out infinite; font-size:clamp(32px,8vw,48px);"></i>
-    <h1 class="arcade-font glow-blue mb-2" style="font-size:clamp(22px,6vw,36px); letter-spacing:2px;">NEON FURY</h1>
-    <p style="color:#999; margin-bottom:20px; font-size:clamp(11px,2.5vw,13px); letter-spacing:1px; text-transform:uppercase;">SELECT YOUR CLASS</p>
+<div id="usernameScreen" class="screen flex items-center justify-center p-4 sm:p-6 md:p-8" style="background:linear-gradient(135deg,#030105,#070212); overflow-y:auto; width: 100%; height: 100%; padding: clamp(16px, 4vw, 32px);">
+  <div class="panel max-w-2xl w-full text-center" style="background:linear-gradient(135deg, rgba(10,14,35,0.95), rgba(5,7,18,0.95)); padding: clamp(20px, 4vw, 48px);">
+    <i class="fa-solid fa-user-astronaut glow-blue block mb-4" style="animation:pulse 2s ease-in-out infinite; font-size:clamp(28px, 8vw, 48px);"></i>
+    <h1 class="arcade-font glow-blue mb-2" style="font-size:clamp(20px, 6vw, 36px); letter-spacing: clamp(1px, 0.5vw, 2px);">NEON FURY</h1>
+    <p style="color:#999; margin-bottom:clamp(12px, 2vw, 20px); font-size:clamp(10px, 2.3vw, 13px); letter-spacing:1px; text-transform:uppercase;">SELECT YOUR CLASS</p>
     
     <!-- Character Selection Grid -->
     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 12px; margin-bottom: 24px; max-width: 500px; margin-left: auto; margin-right: auto;">
     </div>
-    <div id="characterGrid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 24px; max-width: 450px; margin-left: auto; margin-right: auto;"></div>
+    <div id="characterGrid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(clamp(70px, 18vw, 100px), 1fr)); gap: clamp(8px, 2vw, 12px); margin-bottom: 24px; width: min(90vw, 500px); margin-left: auto; margin-right: auto;"></div>
     
     <p style="color:#999; margin-bottom:16px; font-size:clamp(10px,2vw,12px); letter-spacing:1px; text-transform:uppercase;">ENTER YOUR CALL SIGN</p>
-    <input type="text" id="usernameInput" class="username-input w-full mb-6" style="font-size:clamp(12px,2.5vw,14px); padding:clamp(10px,2vw,14px); max-width:300px; margin-left:auto; margin-right:auto; display:block;" placeholder="PILOT NAME" maxlength="20">
-    <button id="btnSetUser" style="width:100%; max-width:300px; background:linear-gradient(to right,#06b6d4,#4f46e5); color:#000; border:none; font-weight:bold; padding:clamp(12px,2.5vw,14px); border-radius:8px; text-transform:uppercase; font-size:clamp(12px,2.5vw,14px); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.2s; margin:0 auto;" onmouseover="this.style.background='linear-gradient(to right,#06b6d4,#4f46e5)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.filter='brightness(1)';">
+    <input type="text" id="usernameInput" class="username-input w-full mb-6" style="font-size:clamp(12px,2.5vw,14px); padding:clamp(10px,2vw,14px); max-width:min(85vw, 350px); margin-left:auto; margin-right:auto; display:block;" placeholder="PILOT NAME" maxlength="20">
+    <button id="btnSetUser" style="width:100%; max-width:min(85vw, 350px); background:linear-gradient(to right,#06b6d4,#4f46e5); color:#000; border:none; font-weight:bold; padding:clamp(12px,2.5vw,14px); border-radius:8px; text-transform:uppercase; font-size:clamp(12px,2.5vw,14px); cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px; transition:all 0.2s; margin:0 auto;" onmouseover="this.style.background='linear-gradient(to right,#06b6d4,#4f46e5)'; this.style.filter='brightness(1.1)';" onmouseout="this.style.filter='brightness(1)';">
       <i class="fa-solid fa-play"></i> START MISSION
     </button>
   </div>
@@ -328,7 +328,7 @@
 
 <div id="menuScreen" class="screen hidden flex flex-col items-center justify-center p-4 sm:p-8" style="background: transparent; min-height: 100vh; position: relative; z-index: 10; overflow-y: auto; padding-bottom: 60px;">
   <!-- Header Section -->
-  <div style="width: 100%; max-width: 900px; padding: 20px 0; display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;">
+  <div style="width: 100%; max-width: min(95vw, 900px); padding: clamp(12px, 3vw, 20px) 0; display: flex; justify-content: space-between; align-items: center; gap: clamp(12px, 2vw, 20px); flex-wrap: wrap; margin-left: auto; margin-right: auto;">
     <!-- Player Info -->
     <div style="display: flex; align-items: center; gap: 20px; flex: 1; min-width: 200px;">
       <div id="characterPFP" style="width: 64px; height: 64px; border-radius: 12px; background: linear-gradient(135deg, #06b6d4, #4f46e5); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 25px rgba(6, 182, 212, 0.7); flex-shrink: 0; border: 2px solid rgba(0,255,255,0.5);">
@@ -349,20 +349,20 @@
   </div>
 
   <!-- Title Section -->
-  <div style="text-align: center; margin: 30px 0; width: 100%; max-width: 900px; position: relative; z-index: 10;">
-    <h1 class="arcade-font glow-title" style="font-size: clamp(36px, 10vw, 64px); margin: 0 0 20px 0; letter-spacing: 4px;">NEON FURY</h1>
-    <p style="color: #aaa; font-size: clamp(13px, 2.5vw, 15px); margin: 0; max-width: 85%; margin: 0 auto; line-height: 1.7; letter-spacing: 0.5px;">Deploy hyper-responsive humanoid combat units into tactical vector arenas. Ultimate precision. Ultimate glory.</p>
+  <div style="text-align: center; margin: clamp(20px, 5vw, 30px) 0; width: 100%; max-width: min(95vw, 900px); position: relative; z-index: 10; margin-left: auto; margin-right: auto;">
+    <h1 class="arcade-font glow-title" style="font-size: clamp(32px, 8vw, 64px); margin: 0 0 clamp(12px, 3vw, 20px) 0; letter-spacing: clamp(2px, 1vw, 4px);">NEON FURY</h1>
+    <p style="color: #aaa; font-size: clamp(12px, 2vw, 15px); margin: 0; max-width: 90%; margin: 0 auto; line-height: 1.6; letter-spacing: 0.5px;">Deploy hyper-responsive humanoid combat units into tactical vector arenas. Ultimate precision. Ultimate glory.</p>
   </div>
 
   <!-- Action Buttons -->
-  <div style="display: flex; gap: clamp(12px, 2.5vw, 16px); justify-content: center; flex-wrap: wrap; margin: 30px 0; width: 100%; max-width: 700px;">
-    <button onclick="goDifficulty()" class="neon-btn" style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 10px;"><i class="fa-solid fa-crosshairs" style="font-size: 18px;"></i> ENGAGE</button>
-    <button onclick="goShop()" class="neon-btn" style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 10px;"><i class="fa-solid fa-hammer" style="font-size: 18px;"></i> FORGE</button>
-    <button onclick="goHowTo()" class="neon-btn" style="flex: 1; min-width: 140px; display: flex; align-items: center; justify-content: center; gap: 10px;"><i class="fa-solid fa-book" style="font-size: 18px;"></i> MANUAL</button>
+  <div style="display: flex; gap: clamp(10px, 2vw, 16px); justify-content: center; flex-wrap: wrap; margin: clamp(20px, 3vw, 30px) 0; width: 100%; max-width: min(95vw, 700px); margin-left: auto; margin-right: auto;">
+    <button onclick="goDifficulty()" class="neon-btn" style="flex: 1; min-width: clamp(100px, 20vw, 140px); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: clamp(11px, 2vw, 14px);"><i class="fa-solid fa-crosshairs" style="font-size: clamp(14px, 2vw, 18px);"></i> ENGAGE</button>
+    <button onclick="goShop()" class="neon-btn" style="flex: 1; min-width: clamp(100px, 20vw, 140px); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: clamp(11px, 2vw, 14px);"><i class="fa-solid fa-hammer" style="font-size: clamp(14px, 2vw, 18px);"></i> FORGE</button>
+    <button onclick="goHowTo()" class="neon-btn" style="flex: 1; min-width: clamp(100px, 20vw, 140px); display: flex; align-items: center; justify-content: center; gap: 6px; font-size: clamp(11px, 2vw, 14px);"><i class="fa-solid fa-book" style="font-size: clamp(14px, 2vw, 18px);"></i> MANUAL</button>
   </div>
 
   <!-- Stats Grid -->
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: clamp(10px, 2vw, 14px); width: 100%; max-width: 700px; margin: 30px 0;">
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(clamp(70px, 18vw, 120px), 1fr)); gap: clamp(8px, 2vw, 14px); width: 100%; max-width: min(95vw, 700px); margin: clamp(20px, 3vw, 30px) auto; margin-left: auto; margin-right: auto;">
     <div class="panel-dark" style="padding: clamp(12px, 2vw, 16px); text-align: center; border-radius: 10px; background: linear-gradient(135deg, rgba(139,0,255,0.1), rgba(139,0,255,0.05)); border: 1px solid rgba(139,0,255,0.2);">
       <div style="color: #999; font-size: clamp(9px, 1.3vw, 11px); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">⚡ Attack</div>
       <div class="glow-pink" style="font-weight: bold; font-size: clamp(16px, 3.5vw, 22px); margin: 0;" id="statPower">10</div>
@@ -386,7 +386,7 @@
   </div>
 
   <!-- Mission Log -->
-  <div id="missionLog" style="position: relative; z-index: 15; width: calc(100% - 16px); max-width: 700px; margin-left: auto; margin-right: auto; background: linear-gradient(135deg, rgba(6,182,212,0.65), rgba(79,70,229,0.55)); border: 2px solid #00ffff; border-radius: 12px; padding: clamp(12px, 3vw, 24px); margin-top: 28px; text-align: center; box-shadow: 0 0 40px rgba(0,255,255,0.8), 0 0 60px rgba(79,70,229,0.5), inset 0 0 30px rgba(6,182,212,0.3); word-wrap: break-word;">
+  <div id="missionLog" style="position: relative; z-index: 15; width: calc(100% - clamp(16px, 4vw, 32px)); max-width: min(95vw, 700px); margin-left: auto; margin-right: auto; background: linear-gradient(135deg, rgba(6,182,212,0.65), rgba(79,70,229,0.55)); border: 2px solid #00ffff; border-radius: 12px; padding: clamp(12px, 3vw, 24px); margin-top: clamp(16px, 3vw, 28px); text-align: center; box-shadow: 0 0 40px rgba(0,255,255,0.8), 0 0 60px rgba(79,70,229,0.5), inset 0 0 30px rgba(6,182,212,0.3); word-wrap: break-word;">
     <div style="color: #00ffff; font-size: clamp(10px, 1.8vw, 12px); text-transform: uppercase; margin-bottom: 10px; letter-spacing: 1.5px; font-weight: bold; text-shadow: 0 0 15px rgba(0,255,255,0.8), 0 0 25px rgba(0,255,255,0.5);">⚔️ LAST MISSION</div>
     <div id="missionLogContent" style="color: #00ff88; font-weight: bold; font-size: clamp(14px, 2.5vw, 18px); font-family: 'Space Mono', monospace; text-shadow: 0 0 15px rgba(0,255,136,0.8), 0 0 25px rgba(0,255,136,0.5); word-wrap: break-word; overflow-wrap: break-word;">AWAITING DEPLOYMENT</div>
   </div>
