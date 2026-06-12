@@ -392,7 +392,7 @@
   </div>
 </div>
 
-<div id="difficultyScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+<div id="difficultyScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
   <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
     <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">SELECT DIFFICULTY</h2>
@@ -404,7 +404,7 @@
   </div>
 </div>
 
-<div id="arenaScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+<div id="arenaScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
   <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
     <button onclick="goDifficulty()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">SELECT LEVEL · <span id="arenaDiffLabel" class="text-pink-400">NOVICE</span></h2>
@@ -413,7 +413,7 @@
   <div id="arenaList" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 flex-1 overflow-y-auto pr-2 pb-4"></div>
 </div>
 
-<div id="shopScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+<div id="shopScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
   <div class="flex justify-between items-center border-b border-gray-900 pb-3 mb-4">
     <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">ARMORY LAB</h2>
@@ -436,7 +436,7 @@
   </div>
 </div>
 
-<div id="howToScreen" class="screen hidden flex flex-col p-6" style="background:#020206;">
+<div id="howToScreen" class="screen hidden flex flex-col p-6" style="background:transparent;">
   <div class="flex justify-between items-center border-b border-white/10 pb-3 mb-5">
     <button onclick="goMenu()" class="text-white/60 hover:text-white"><i class="fa-solid fa-arrow-left"></i> BACK</button>
     <h2 class="arcade-font text-cyan-400">HOW TO PLAY</h2>
@@ -622,6 +622,29 @@ const ENEMY_TYPES = {
   tactical: { name: 'SENTINEL PRIME', icon: 'fa-chess', aggression: 0.6, defense: 0.6, strategy: 'tactical' },
   legend: { name: 'NEXUS OVERLORD', icon: 'fa-crown', aggression: 0.9, defense: 0.9, strategy: 'legend' }
 };
+
+// Get the highest completed level
+function getHighestCompletedLevel(){
+  let highest = -1;
+  for(let i = 0; i < LEVELS.length; i++){
+    if(gameSave.hasWonLevel(i)) highest = i;
+  }
+  return highest;
+}
+
+// Check if a difficulty tier is unlocked based on boss level completion
+function isDifficultyUnlocked(diffKey){
+  const tierMap = {
+    'novice': 2,   // Unlock after beating level 2 (CHROME CITY boss)
+    'amateur': 5,  // Unlock after beating level 5 (VOID TERMINAL boss)
+    'pro': 8,      // Unlock after beating level 8 (INFINITY LOOP boss)
+    'expert': 9,   // Unlock after beating level 9 (TRANSCENDENCE boss)
+    'legend': 9    // Unlock after beating level 9
+  };
+  const highest = getHighestCompletedLevel();
+  if(diffKey === 'novice') return true; // Novice always unlocked
+  return highest >= tierMap[diffKey] - 1;
+}
 
 const DIFFICULTIES = {
   novice:{key:'novice',label:'NOVICE',icon:'shield',desc:'Easy configuration',color:'#34d399',rewardMult:1.0,hpMult:0.8,aiReact:1.2,aiDmg:0.7},
@@ -2537,15 +2560,29 @@ function buildDifficultyGrid(){
   for (const key of ['novice','amateur','pro','expert','legend']){
     const d = DIFFICULTIES[key];
     const card = document.createElement('div');
+    const isUnlocked = isDifficultyUnlocked(key);
     card.className = 'diff-card panel-dark p-5 flex flex-col';
     card.style.color = d.color;
     card.dataset.diff = key;
-    card.innerHTML = `<div class="corner"></div><h3 style="font-size:clamp(13px,2.5vw,18px); font-weight:bold; font-family:'Orbitron', sans-serif;">${d.label}</h3><p style="font-size:clamp(10px,1.5vw,12px); color:#999; margin-top:6px;">${d.desc}</p>`;
-    card.addEventListener('click', () => selectDifficulty(key));
+    
+    if(!isUnlocked){
+      card.style.opacity = '0.4';
+      card.style.cursor = 'not-allowed';
+      card.style.filter = 'grayscale(100%)';
+      card.innerHTML = `<div class="corner"></div><h3 style="font-size:clamp(13px,2.5vw,18px); font-weight:bold; font-family:'Orbitron', sans-serif;">🔒 ${d.label}</h3><p style="font-size:clamp(10px,1.5vw,12px); color:#999; margin-top:6px;">Complete previous tier</p>`;
+      card.addEventListener('click', () => selectDifficulty(key));
+    } else {
+      card.innerHTML = `<div class="corner"></div><h3 style="font-size:clamp(13px,2.5vw,18px); font-weight:bold; font-family:'Orbitron', sans-serif;">${d.label}</h3><p style="font-size:clamp(10px,1.5vw,12px); color:#999; margin-top:6px;">${d.desc}</p>`;
+      card.addEventListener('click', () => selectDifficulty(key));
+    }
     grid.appendChild(card);
   }
 }
 function selectDifficulty(key){
+  if(!isDifficultyUnlocked(key)){
+    showToast('This tier is locked! Complete the previous tier to unlock it.', 'warning');
+    return;
+  }
   state.difficulty = key;
   document.querySelectorAll('.diff-card').forEach(c => c.classList.remove('selected'));
   document.querySelector(`[data-diff="${key}"]`).classList.add('selected');
