@@ -3,10 +3,15 @@
   "short_name": "StackFolio",
   "description": "Fast browser utilities - HTML Previewer, QR Generator, Clipboard Studio & more",
   "start_url": "/",
+  "scope": "/",
+  "id": "/",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#0A1F3D",
   "theme_color": "#0A1F3D",
   "orientation": "portrait-primary",
+  "lang": "en",
+  "categories": ["utilities", "productivity", "tools"],
   "icons": [
     {
       "src": "/icon-192.png",
@@ -17,6 +22,12 @@
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }
