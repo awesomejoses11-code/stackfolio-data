@@ -697,39 +697,84 @@ function getHighestCompletedLevel(){
   return highest;
 }
 
-// Check if a difficulty tier is unlocked based on boss level completion
+// Check if a difficulty tier is unlocked based on previous tier completion
 function isDifficultyUnlocked(diffKey){
-  const tierMap = {
-    'novice': 2,   // Unlock after beating level 2 (CHROME CITY boss)
-    'amateur': 5,  // Unlock after beating level 5 (VOID TERMINAL boss)
-    'pro': 8,      // Unlock after beating level 8 (INFINITY LOOP boss)
-    'expert': 9,   // Unlock after beating level 9 (TRANSCENDENCE boss)
-    'legend': 9    // Unlock after beating level 9
-  };
-  const highest = getHighestCompletedLevel();
+  const highest = getHighestCompletedLevel(); // returns highest completed level index (0-49)
+  const diff = DIFFICULTIES[diffKey];
   if(diffKey === 'novice') return true; // Novice always unlocked
-  return highest >= tierMap[diffKey] - 1;
+  // Unlock when the player has completed at least one level of the previous tier
+  // (i.e., the level immediately before this tier's first level).
+  return highest >= diff.levelStart - 1;
 }
 
+// Each tier unlocks a block of 10 levels. hpMult removed — health is fixed per
+// level via the LEVELS table. rewardMult still scales credits per tier.
 const DIFFICULTIES = {
-  novice:{key:'novice',label:'NOVICE',icon:'shield',desc:'Easy configuration',color:'#34d399',rewardMult:1.0,hpMult:0.8,aiReact:1.2,aiDmg:0.7},
-  amateur:{key:'amateur',label:'AMATEUR',icon:'dumbbell',desc:'Standard deployment',color:'#22d3ee',rewardMult:1.5,hpMult:1.0,aiReact:0.9,aiDmg:1.0},
-  pro:{key:'pro',label:'PRO',icon:'fire',desc:'Challenging routines',color:'#fbbf24',rewardMult:2.25,hpMult:1.15,aiReact:0.7,aiDmg:1.25},
-  expert:{key:'expert',label:'EXPERT',icon:'skull',desc:'Master deployment',color:'#ec4899',rewardMult:5.625,hpMult:1.3,aiReact:0.55,aiDmg:1.45},
-  legend:{key:'legend',label:'LEGEND',icon:'crown',desc:'Fatal subroutines',color:'#ef4444',rewardMult:14.0625,hpMult:1.6,aiReact:0.4,aiDmg:1.75}
+  novice: { key:'novice', label:'NOVICE', icon:'shield',  desc:'Levels 1-10',  color:'#34d399', rewardMult:1.0,     aiReact:1.2,  aiDmg:0.7,  levelStart:0,  levelEnd:9  },
+  amateur:{ key:'amateur',label:'AMATEUR',icon:'dumbbell',desc:'Levels 11-20', color:'#22d3ee', rewardMult:1.5,     aiReact:0.9,  aiDmg:1.0,  levelStart:10, levelEnd:19 },
+  pro:    { key:'pro',    label:'PRO',    icon:'fire',    desc:'Levels 21-30', color:'#fbbf24', rewardMult:2.25,    aiReact:0.7,  aiDmg:1.25, levelStart:20, levelEnd:29 },
+  expert: { key:'expert', label:'EXPERT', icon:'skull',   desc:'Levels 31-40', color:'#ec4899', rewardMult:5.625,   aiReact:0.55, aiDmg:1.45, levelStart:30, levelEnd:39 },
+  legend: { key:'legend', label:'LEGEND', icon:'crown',   desc:'Levels 41-50', color:'#ef4444', rewardMult:14.0625, aiReact:0.4,  aiDmg:1.75, levelStart:40, levelEnd:49 }
 };
 
+// 50-level table imported from table_20260615.csv. baseHP matches the table
+// exactly. enemyType / color / story are flavor and can be tuned freely.
 const LEVELS = [
-  {name:'GRID RECON',baseHP:180,reward:200,enemyType:'balanced',color:0x66ff00,story:'Test your reflexes against enhanced drones.',isBoss:false},
-  {name:'IRON FORGE',baseHP:225,reward:300,enemyType:'balanced',color:0x99ff00,story:'Crush the upgraded factory sentinels.',isBoss:false},
-  {name:'CHROME CITY STREETS',baseHP:540,reward:600,enemyType:'striker',color:0xffff00,story:'Face the CHROME GUARDIAN—apex of tier one.',isBoss:true},
-  {name:'NEON WASTELAND',baseHP:315,reward:500,enemyType:'defender',color:0xffbb00,story:'Navigate the neon ruins with enhanced defenses.',isBoss:false},
-  {name:'PLASMA SUB-CORE',baseHP:360,reward:650,enemyType:'tactical',color:0xff6600,story:'Breach the plasma chambers with stronger units.',isBoss:false},
-  {name:'VOID TERMINAL',baseHP:1080,reward:1400,enemyType:'balanced',color:0xff3300,story:'Confront the VOID SENTINEL—tier two awaits.',isBoss:true},
-  {name:'NEXUS OVERFLOW',baseHP:472,reward:1000,enemyType:'striker',color:0xcc0000,story:'Battle through the overloaded nexus.',isBoss:false},
-  {name:'SINGULARITY RIFT',baseHP:540,reward:1250,enemyType:'tactical',color:0x990000,story:'Enter the dimensional rift.',isBoss:false},
-  {name:'INFINITY LOOP',baseHP:2160,reward:2500,enemyType:'defender',color:0x660000,story:'Defeat the INFINITY ARBITER—the final guardian.',isBoss:true},
-  {name:'TRANSCENDENCE LAYER',baseHP:4320,reward:5000,enemyType:'legend',color:0x330000,story:'Face the TRANSCENDENT—your ultimate test.',isBoss:true}
+  // NOVICE (Levels 1-10)
+  {name:'GRID RECON',          baseHP:200,   reward:200,  enemyType:'balanced', color:0x66ff00, story:'Test your reflexes against enhanced drones.', isBoss:false, powerLevel:1},
+  {name:'IRON FORGE',          baseHP:230,   reward:300,  enemyType:'balanced', color:0x99ff00, story:'Crush the upgraded factory sentinels.',       isBoss:false, powerLevel:2},
+  {name:'CHROME CITY STREETS', baseHP:250,   reward:600,  enemyType:'striker',  color:0xffff00, story:'Face the CHROME GUARDIAN—apex of tier one.', isBoss:false, powerLevel:3},
+  {name:'NEON WASTELAND',      baseHP:280,   reward:500,  enemyType:'defender', color:0xffbb00, story:'Navigate the neon ruins with enhanced defenses.', isBoss:false, powerLevel:4},
+  {name:'PLASMA SUB-CORE',     baseHP:310,   reward:650,  enemyType:'tactical', color:0xff6600, story:'Breach the plasma chambers with stronger units.', isBoss:false, powerLevel:5},
+  {name:'VOID TERMINAL',       baseHP:340,   reward:1400, enemyType:'balanced', color:0xff3300, story:'Confront the VOID SENTINEL—tier two awaits.', isBoss:false, powerLevel:6},
+  {name:'NEXUS OVERFLOW',      baseHP:380,   reward:1000, enemyType:'striker',  color:0xcc0000, story:'Battle through the overloaded nexus.',        isBoss:false, powerLevel:7},
+  {name:'SINGULARITY RIFT',    baseHP:420,   reward:1250, enemyType:'tactical', color:0x990000, story:'Enter the dimensional rift.',                 isBoss:false, powerLevel:8},
+  {name:'INFINITY LOOP',       baseHP:470,   reward:2500, enemyType:'defender', color:0x660000, story:'Defeat the INFINITY ARBITER—the final guardian.', isBoss:false, powerLevel:9},
+  {name:'TRANSCENDENCE LAYER', baseHP:510,   reward:5000, enemyType:'legend',   color:0x330000, story:'Face the TRANSCENDENT—your ultimate test.',  isBoss:true,  powerLevel:10},
+  // AMATEUR (Levels 11-20)
+  {name:'AMATEUR: GRID 2.0',   baseHP:520,   reward:250,  enemyType:'balanced', color:0x66ff00, story:'Enhanced grid combat protocols engaged.',     isBoss:false, powerLevel:11},
+  {name:'IRON FORGE II',       baseHP:580,   reward:350,  enemyType:'balanced', color:0x99ff00, story:'Heavy forge defenses come online.',           isBoss:false, powerLevel:12},
+  {name:'CHROME STRIKER',      baseHP:640,   reward:700,  enemyType:'striker',  color:0xffff00, story:'Elite chrome strike unit deployed.',          isBoss:false, powerLevel:13},
+  {name:'WASTELAND RAID',      baseHP:710,   reward:600,  enemyType:'defender', color:0xffbb00, story:'Ambush in the irradiated wasteland.',          isBoss:false, powerLevel:14},
+  {name:'PLASMA CORE',         baseHP:790,   reward:750,  enemyType:'tactical', color:0xff6600, story:'Core breach threat detected.',                isBoss:false, powerLevel:15},
+  {name:'VOID SENTINEL II',    baseHP:870,   reward:1600, enemyType:'balanced', color:0xff3300, story:'The void sentinel returns, stronger.',        isBoss:false, powerLevel:16},
+  {name:'NEXUS PRIME',         baseHP:970,   reward:1100, enemyType:'striker',  color:0xcc0000, story:'Nexus prime assault begins.',                 isBoss:false, powerLevel:17},
+  {name:'RIFT WALKER',         baseHP:1070,  reward:1350, enemyType:'tactical', color:0x990000, story:'A rift walker tears through reality.',        isBoss:false, powerLevel:18},
+  {name:'INFINITY GUARDIAN',   baseHP:1190,  reward:2600, enemyType:'defender', color:0x660000, story:'The second infinity guardian rises.',         isBoss:false, powerLevel:19},
+  {name:'TRANSCENDENCE II',    baseHP:1310,  reward:5500, enemyType:'legend',   color:0x330000, story:'A transcendent echo manifests.',              isBoss:true,  powerLevel:20},
+  // PRO (Levels 21-30)
+  {name:'PRO: GRID ZERO',      baseHP:1320,  reward:300,  enemyType:'balanced', color:0x66ff00, story:'Pro grid challenge initialized.',             isBoss:false, powerLevel:21},
+  {name:'IRON FORGE III',      baseHP:1470,  reward:400,  enemyType:'balanced', color:0x99ff00, story:'Ultra-heavy forge protocol engaged.',          isBoss:false, powerLevel:22},
+  {name:'CHROME ANNIHILATOR',  baseHP:1630,  reward:800,  enemyType:'striker',  color:0xffff00, story:'The chrome annihilator stalks the arena.',    isBoss:false, powerLevel:23},
+  {name:'WASTELAND WARLORD',   baseHP:1800,  reward:700,  enemyType:'defender', color:0xffbb00, story:'The warlord of the wastes challenges you.',   isBoss:false, powerLevel:24},
+  {name:'PLASMA INFERNO',      baseHP:2000,  reward:850,  enemyType:'tactical', color:0xff6600, story:'Plasma inferno mode is hot.',                 isBoss:false, powerLevel:25},
+  {name:'VOID OVERLORD',       baseHP:2220,  reward:1800, enemyType:'balanced', color:0xff3300, story:'The void overlord rises.',                    isBoss:false, powerLevel:26},
+  {name:'NEXUS SHATTER',       baseHP:2470,  reward:1200, enemyType:'striker',  color:0xcc0000, story:'Nexus shatter event detected.',               isBoss:false, powerLevel:27},
+  {name:'RIFT BREAKER',        baseHP:2740,  reward:1450, enemyType:'tactical', color:0x990000, story:'A rift breaker carves the sky.',              isBoss:false, powerLevel:28},
+  {name:'INFINITY DESTROYER',  baseHP:3040,  reward:2700, enemyType:'defender', color:0x660000, story:'The infinity destroyer arrives.',              isBoss:false, powerLevel:29},
+  {name:'TRANSCENDENCE III',   baseHP:3340,  reward:6000, enemyType:'legend',   color:0x330000, story:'Transcendent prime steps forward.',           isBoss:true,  powerLevel:30},
+  // EXPERT (Levels 31-40)
+  {name:'EXPERT: GRID OMEGA',  baseHP:3370,  reward:350,  enemyType:'balanced', color:0x66ff00, story:'Omega grid protocol active.',                 isBoss:false, powerLevel:31},
+  {name:'IRON FORGE IV',       baseHP:3740,  reward:450,  enemyType:'balanced', color:0x99ff00, story:'Forge of doom heats up.',                     isBoss:false, powerLevel:32},
+  {name:'CHROME REAPER',       baseHP:4150,  reward:900,  enemyType:'striker',  color:0xffff00, story:'The chrome reaper hunts you.',                isBoss:false, powerLevel:33},
+  {name:'WASTELAND APOCALYPSE',baseHP:4610,  reward:800,  enemyType:'defender', color:0xffbb00, story:'Apocalypse storms the wasteland.',            isBoss:false, powerLevel:34},
+  {name:'PLASMA NOVA',         baseHP:5120,  reward:950,  enemyType:'tactical', color:0xff6600, story:'A plasma nova burst is imminent.',            isBoss:false, powerLevel:35},
+  {name:'VOID EMPEROR',        baseHP:5680,  reward:2000, enemyType:'balanced', color:0xff3300, story:'The void emperor surveys his domain.',        isBoss:false, powerLevel:36},
+  {name:'NEXUS APEX',          baseHP:6300,  reward:1300, enemyType:'striker',  color:0xcc0000, story:'You stand at the nexus apex.',                isBoss:false, powerLevel:37},
+  {name:'RIFT ANNIHILATOR',    baseHP:7000,  reward:1550, enemyType:'tactical', color:0x990000, story:'The rift annihilator awakens.',                isBoss:false, powerLevel:38},
+  {name:'INFINITY GOD',        baseHP:7770,  reward:2800, enemyType:'defender', color:0x660000, story:'An infinity god descends.',                    isBoss:false, powerLevel:39},
+  {name:'TRANSCENDENCE IV',    baseHP:8540,  reward:6500, enemyType:'legend',   color:0x330000, story:'A transcendent god challenges you.',          isBoss:true,  powerLevel:40},
+  // LEGEND (Levels 41-50)
+  {name:'LEGEND: GRID ETERNAL',baseHP:8620,  reward:400,  enemyType:'balanced', color:0x66ff00, story:'The eternal grid never sleeps.',              isBoss:false, powerLevel:41},
+  {name:'IRON FORGE V',        baseHP:9570,  reward:500,  enemyType:'balanced', color:0x99ff00, story:'The final forge roars to life.',              isBoss:false, powerLevel:42},
+  {name:'CHROME DOOMBRINGER',  baseHP:10620, reward:1000, enemyType:'striker',  color:0xffff00, story:'The doombringer marches.',                    isBoss:false, powerLevel:43},
+  {name:'WASTELAND END',       baseHP:11780, reward:900,  enemyType:'defender', color:0xffbb00, story:'You reach the end of the wastes.',            isBoss:false, powerLevel:44},
+  {name:'PLASMA ZERO',         baseHP:13080, reward:1050, enemyType:'tactical', color:0xff6600, story:'Plasma zero — absolute heat.',                isBoss:false, powerLevel:45},
+  {name:'VOID PRIME',          baseHP:14520, reward:2200, enemyType:'balanced', color:0xff3300, story:'Void prime — the source.',                    isBoss:false, powerLevel:46},
+  {name:'NEXUS DIVINE',        baseHP:16120, reward:1400, enemyType:'striker',  color:0xcc0000, story:'A divine nexus is unveiled.',                 isBoss:false, powerLevel:47},
+  {name:'RIFT DESTROYER',      baseHP:17890, reward:1650, enemyType:'tactical', color:0x990000, story:'The rift destroyer comes for you.',           isBoss:false, powerLevel:48},
+  {name:'INFINITY ASCENDANT',  baseHP:19860, reward:2900, enemyType:'defender', color:0x660000, story:'An infinity ascendant rises.',                 isBoss:false, powerLevel:49},
+  {name:'TRANSCENDENCE V',     baseHP:21840, reward:7000, enemyType:'legend',   color:0x330000, story:'The final transcendence.',                    isBoss:true,  powerLevel:50}
 ];
 
 const GEAR = {
@@ -1020,44 +1065,275 @@ class HumanoidFighter {
       if (gear.weapon) {
         const wd = GEAR[gear.weapon];
         let weaponMesh;
-        if (gear.weapon === 'plasma_blade' || gear.weapon === 'void_reaver') {
-          weaponMesh = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.018, 0.04, 0.9, 8),
-            new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 4 })
+        
+        // ===== MELEE WEAPONS WITH DISTINCT VISUALS =====
+        if (gear.weapon === 'plasma_blade' || gear.weapon === 'ion_spike' || 
+            gear.weapon === 'arc_reaper' || gear.weapon === 'photon_lance' || 
+            gear.weapon === 'void_reaver') {
+          const meleeDesigns = {
+            'plasma_blade': { type: 'sword', scale: 0.85, length: 0.9 },    // rare sword
+            'ion_spike': { type: 'sword', scale: 0.88, length: 0.9 },       // rare sword
+            'arc_reaper': { type: 'axe', scale: 1.0, length: 0.85 },        // epic axe - wider blade
+            'photon_lance': { type: 'lance', scale: 1.05, length: 1.0 },   // epic lance - long pointed
+            'void_reaver': { type: 'reaper', scale: 1.2, length: 1.05 }     // legendary reaper - massive
+          };
+          const design = meleeDesigns[gear.weapon] || { type: 'sword', scale: 0.9, length: 0.9 };
+          
+          const meleeGroup = new THREE.Group();
+          
+          if (design.type === 'sword') {
+            // Standard laser sword - tapered blade
+            const blade = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.018 * design.scale, 0.04 * design.scale, design.length, 8),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 4 })
+            );
+            blade.rotation.x = Math.PI / 2;
+            blade.position.z = design.length / 2;
+            meleeGroup.add(blade);
+            
+            // Guard/crossbar
+            const guard = new THREE.Mesh(
+              new THREE.BoxGeometry(0.12 * design.scale, 0.02, 0.02),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 2 })
+            );
+            meleeGroup.add(guard);
+          } 
+          else if (design.type === 'axe') {
+            // Axe - wider, flatter blade
+            const axeHead = new THREE.Mesh(
+              new THREE.BoxGeometry(0.14 * design.scale, 0.08 * design.scale, design.length * 0.6, 4),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 3.8 })
+            );
+            axeHead.rotation.x = 0;
+            axeHead.position.z = design.length * 0.4;
+            meleeGroup.add(axeHead);
+            
+            // Axe handle
+            const handle = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.01 * design.scale, 0.015 * design.scale, design.length, 6),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 2 })
+            );
+            handle.rotation.x = Math.PI / 2;
+            handle.position.z = design.length * 0.3;
+            meleeGroup.add(handle);
+          }
+          else if (design.type === 'lance') {
+            // Lance - long, pointed spear
+            const shaft = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.012 * design.scale, 0.012 * design.scale, design.length, 6),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 3.5 })
+            );
+            shaft.rotation.x = Math.PI / 2;
+            shaft.position.z = design.length * 0.4;
+            meleeGroup.add(shaft);
+            
+            // Pointed tip
+            const tip = new THREE.Mesh(
+              new THREE.ConeGeometry(0.015 * design.scale, design.length * 0.3, 8),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 4.2 })
+            );
+            tip.rotation.x = Math.PI / 2;
+            tip.position.z = design.length * 0.85;
+            meleeGroup.add(tip);
+          }
+          else if (design.type === 'reaper') {
+            // Reaper - curved, scythe-like blade
+            const bladePart = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.025 * design.scale, 0.055 * design.scale, design.length, 8),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 4 })
+            );
+            bladePart.rotation.x = Math.PI / 2;
+            bladePart.scale.z = 1.3; // elongate for scythe effect
+            bladePart.position.z = design.length * 0.45;
+            meleeGroup.add(bladePart);
+            
+            // Handle
+            const handle = new THREE.Mesh(
+              new THREE.CylinderGeometry(0.015 * design.scale, 0.02 * design.scale, design.length * 0.6, 6),
+              new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 2.5 })
+            );
+            handle.rotation.x = Math.PI / 2;
+            handle.position.z = design.length * 0.15;
+            meleeGroup.add(handle);
+          }
+          
+          weaponMesh = meleeGroup;
+          weaponMesh.position.set(0, -0.05, 0.25);
+        } 
+        // ===== RANGED WEAPONS - Laser rifle/cannon visuals =====
+        else if (wd.ranged) {
+          const rifleScales = {
+            'beam_cutter': 0.7,           // rare - compact rifle
+            'pulse_cannon': 0.85,         // epic - medium rifle
+            'plasma_inferno': 1.0,        // legendary - full cannon
+            'cosmic_annihilator': 1.15,   // mythic - massive hybrid cannon
+            'nightmare_edge': 1.12        // mythic - massive hybrid cannon
+          };
+          const scale = rifleScales[gear.weapon] || 0.8;
+          
+          // Create laser rifle body (elongated cylinder)
+          const rifleBody = new THREE.Group();
+          
+          // Main barrel - tapered cylinder
+          const barrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.04 * scale, 0.045 * scale, 0.55 * scale, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, metalness: 0.95, roughness: 0.1, emissive: wd.color, emissiveIntensity: 1.2 })
           );
-          weaponMesh.rotation.x = Math.PI / 2;
-          weaponMesh.position.set(0, -0.05, 0.45);
-        } else {
-          // pulse cannon / rifle
-          weaponMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(0.12, 0.12, 0.5),
-            new THREE.MeshStandardMaterial({ color: wd.color, metalness: 0.9, roughness: 0.15, emissive: wd.color, emissiveIntensity: 0.6 })
+          barrel.rotation.z = Math.PI / 2;
+          barrel.position.x = 0.12 * scale;
+          rifleBody.add(barrel);
+          
+          // Grip/body - main block
+          const grip = new THREE.Mesh(
+            new THREE.BoxGeometry(0.08 * scale, 0.1 * scale, 0.25 * scale),
+            new THREE.MeshStandardMaterial({ color: wd.color, metalness: 0.85, roughness: 0.2, emissive: wd.color, emissiveIntensity: 0.8 })
           );
-          weaponMesh.position.set(0, 0, 0.25);
+          grip.position.set(-0.02 * scale, 0, 0.1 * scale);
+          rifleBody.add(grip);
+          
+          // Energy core - glowing sphere at connection
+          const core = new THREE.Mesh(
+            new THREE.SphereGeometry(0.025 * scale, 8, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 2.5 })
+          );
+          core.position.set(-0.01 * scale, 0, 0.0);
+          rifleBody.add(core);
+          
+          weaponMesh = rifleBody;
+          weaponMesh.position.set(0, 0, 0.2);
         }
+        // ===== HYBRID WEAPONS - Combined blade + rifle =====
+        else {
+          // Hybrid weapons are mythic tier, so full size
+          const hybridBody = new THREE.Group();
+          
+          // Small blade attachment
+          const bladePart = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.015, 0.035, 0.6, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 3.5 })
+          );
+          bladePart.rotation.x = Math.PI / 2;
+          bladePart.position.set(0, 0.1, 0.3);
+          hybridBody.add(bladePart);
+          
+          // Rifle barrel attachment
+          const barrel = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.04, 0.046, 0.6, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, metalness: 0.95, roughness: 0.1, emissive: wd.color, emissiveIntensity: 1.3 })
+          );
+          barrel.rotation.z = Math.PI / 2;
+          barrel.position.set(0.15, -0.08, 0.25);
+          hybridBody.add(barrel);
+          
+          // Main hybrid body
+          const body = new THREE.Mesh(
+            new THREE.BoxGeometry(0.09, 0.12, 0.3),
+            new THREE.MeshStandardMaterial({ color: wd.color, metalness: 0.85, roughness: 0.15, emissive: wd.color, emissiveIntensity: 1.0 })
+          );
+          body.position.set(0, 0, 0.1);
+          hybridBody.add(body);
+          
+          // Dual energy cores
+          const coreL = new THREE.Mesh(
+            new THREE.SphereGeometry(0.028, 8, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 2.8 })
+          );
+          coreL.position.set(-0.035, 0.05, 0.1);
+          hybridBody.add(coreL);
+          
+          const coreR = new THREE.Mesh(
+            new THREE.SphereGeometry(0.028, 8, 8),
+            new THREE.MeshStandardMaterial({ color: wd.color, emissive: wd.color, emissiveIntensity: 2.8 })
+          );
+          coreR.position.set(0.035, 0.05, 0.1);
+          hybridBody.add(coreR);
+          
+          weaponMesh = hybridBody;
+          weaponMesh.position.set(0, 0, 0.15);
+        }
+        
         rightArmRig.hand.add(weaponMesh);
       }
 
+      // ===== ARMOR WITH TIER-BASED SCALING =====
       if (gear.armor) {
         const ad = GEAR[gear.armor];
+        
+        const armorScales = {
+          'titan_frame': 0.85,           // rare
+          'aegis_protocol': 0.95,        // epic
+          'fortress_plating': 1.0,       // epic
+          'basilisk_armor': 1.15,        // legendary
+          'absolute_shield': 1.3         // mythic
+        };
+        const armorScale = armorScales[gear.armor] || 1.0;
+        
+        // Main chest plate
         const chestPlate = new THREE.Mesh(
-          new THREE.BoxGeometry(0.48, 0.5, 0.08),
-          new THREE.MeshStandardMaterial({ color: ad.color, metalness: 0.9, roughness: 0.15, emissive: ad.color, emissiveIntensity: 0.3 })
+          new THREE.BoxGeometry(0.48 * armorScale, 0.5 * armorScale, 0.08 * armorScale),
+          new THREE.MeshStandardMaterial({ color: ad.color, metalness: 0.9, roughness: 0.15, emissive: ad.color, emissiveIntensity: 0.4 })
         );
         chestPlate.position.z = 0.22;
         torsoGroup.add(chestPlate);
+        
+        // Side armor plates (mythic+ only)
+        if (armorScale >= 1.15) {
+          const sideL = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12 * armorScale, 0.45 * armorScale, 0.08 * armorScale),
+            new THREE.MeshStandardMaterial({ color: ad.color, metalness: 0.85, roughness: 0.2, emissive: ad.color, emissiveIntensity: 0.3 })
+          );
+          sideL.position.set(-0.32 * armorScale, 0, 0.18);
+          torsoGroup.add(sideL);
+          
+          const sideR = new THREE.Mesh(
+            new THREE.BoxGeometry(0.12 * armorScale, 0.45 * armorScale, 0.08 * armorScale),
+            new THREE.MeshStandardMaterial({ color: ad.color, metalness: 0.85, roughness: 0.2, emissive: ad.color, emissiveIntensity: 0.3 })
+          );
+          sideR.position.set(0.32 * armorScale, 0, 0.18);
+          torsoGroup.add(sideR);
+        }
       }
 
+      // ===== MOVEMENT BOOTS/THRUSTERS WITH TIER-BASED DESIGN =====
       if (gear.movement) {
         const md = GEAR[gear.movement];
-        const makeThruster = () => new THREE.Mesh(
-          new THREE.CylinderGeometry(0.045, 0.02, 0.22, 8),
-          new THREE.MeshStandardMaterial({ color: md.color, emissive: md.color, emissiveIntensity: 3 })
-        );
+        
+        const thrusterScales = {
+          'velocity_cores': 0.8,         // rare - small thrusters
+          'warp_drive': 0.95,            // epic - medium thrusters
+          'hyperdrive_v3': 1.1,          // legendary - larger thrusters
+          'lightspeed_core': 1.3         // mythic - massive thrusters
+        };
+        const thrusterScale = thrusterScales[gear.movement] || 0.9;
+        
+        const makeThruster = () => {
+          const thrusterGroup = new THREE.Group();
+          
+          // Main thruster body
+          const body = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.045 * thrusterScale, 0.02 * thrusterScale, 0.22 * thrusterScale, 8),
+            new THREE.MeshStandardMaterial({ color: md.color, emissive: md.color, emissiveIntensity: 3 })
+          );
+          thrusterGroup.add(body);
+          
+          // Energy outlet (mythic+)
+          if (thrusterScale >= 1.1) {
+            const outlet = new THREE.Mesh(
+              new THREE.SphereGeometry(0.025 * thrusterScale, 6, 6),
+              new THREE.MeshStandardMaterial({ color: md.color, emissive: md.color, emissiveIntensity: 4 })
+            );
+            outlet.position.y = 0.12 * thrusterScale;
+            thrusterGroup.add(outlet);
+          }
+          
+          return thrusterGroup;
+        };
+        
         const tL = makeThruster();
         tL.position.set(0, -0.02, -0.12);
         tL.rotation.x = -Math.PI / 6;
         legLRig.foot.add(tL);
+        
         const tR = makeThruster();
         tR.position.set(0, -0.02, -0.12);
         tR.rotation.x = -Math.PI / 6;
@@ -1828,16 +2104,12 @@ function screenShake(){
   setTimeout(() => screen.classList.remove('shake'), 350);
 }
 
-function getEnemyMultiplier(){
-  const levelIdx = state.levelIdx;
-  const isBoss = (levelIdx + 1) % 3 === 0 && levelIdx > 0;
-  let mult = 1 + (levelIdx * 0.5);
-  if (isBoss) mult *= 2;
-  return Math.max(1, mult * 1.5);
-}
-
-function getEnemySpeedMultiplier(){ return getEnemyMultiplier(); }
-function getEnemyDefenseMultiplier(){ return getEnemyMultiplier(); }
+// Enemy stat scaling is now baked into the per-level baseHP from the table,
+// so these multipliers collapse to 1. Kept as no-ops to preserve all
+// call-sites elsewhere in the file without further refactoring.
+function getEnemyMultiplier(){ return 1; }
+function getEnemySpeedMultiplier(){ return 1; }
+function getEnemyDefenseMultiplier(){ return 1; }
 
 function enemyAttack(){
   if (state.opponentAttackCD > 0 || state.opponentStagger > 0) return;
@@ -1898,8 +2170,21 @@ function toggleHybridMode() {
   updateHUD();
 }
 
+// Helper function to get laser dimensions based on weapon
+function getLaserDimensions(weaponKey) {
+  const weaponDimensions = {
+    'beam_cutter': { radius: 0.05, length: 1.5 },           // thin, short
+    'pulse_cannon': { radius: 0.08, length: 2.0 },         // medium
+    'plasma_inferno': { radius: 0.12, length: 2.5 },       // thick
+    'cosmic_annihilator': { radius: 0.15, length: 3.0 },   // largest
+    'nightmare_edge': { radius: 0.14, length: 2.8 }        // nearly largest
+  };
+  return weaponDimensions[weaponKey] || { radius: 0.10, length: 2.0 }; // default fallback
+}
+
 class Projectile {
-  constructor(x, y, direction, speed, damage, color, owner) {
+  constructor(x, y, direction, speed, damage, color, owner, weaponKey) {
+    this.weaponKey = weaponKey;
     this.x = x;
     this.y = y;
     this.direction = direction; // +1 or -1
@@ -1912,21 +2197,31 @@ class Projectile {
     this.mesh = null;
     this.light = null;
     
-    // Create Three.js visual (sphere with emissive material + point light)
-    const geo = new THREE.SphereGeometry(0.15, 8, 8);
+    // Get laser dimensions based on weapon
+    const laserDims = getLaserDimensions(weaponKey);
+    
+    // Create laser beam using CylinderGeometry (cylinder oriented along Y, will rotate to X)
+    const geo = new THREE.CylinderGeometry(laserDims.radius, laserDims.radius, laserDims.length, 8, 1);
     const mat = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
       emissiveIntensity: 1.5,
-      metalness: 0.8,
-      roughness: 0.2
+      metalness: 0.9,
+      roughness: 0.1
     });
     this.mesh = new THREE.Mesh(geo, mat);
+    
+    // Rotate laser to point along X-axis (direction of travel)
+    // Cylinder is naturally oriented on Y-axis, rotate 90 degrees on Z-axis
+    this.mesh.rotation.z = Math.PI / 2;
     this.mesh.position.set(x, y, 0);
     this.mesh.castShadow = true;
     scene.add(this.mesh);
     
-    this.light = new THREE.PointLight(color, 1.2, 8);
+    // Light intensity and range scale with laser size for visual progression
+    const lightIntensity = 1.2 + (laserDims.radius * 1.5);
+    const lightRange = 8 + (laserDims.radius * 10);
+    this.light = new THREE.PointLight(color, lightIntensity, lightRange);
     this.light.position.set(x, y, 0);
     scene.add(this.light);
   }
@@ -1973,7 +2268,8 @@ function fireProjectile(weaponKey, owner) {
     weapon.projectileSpeed,
     dmg,
     weapon.projectileColor,
-    owner
+    owner,
+    weaponKey
   );
   
   projectiles.push(projectile);
@@ -1997,7 +2293,8 @@ function fireHybridProjectile(weaponKey, owner) {
     weapon.projectileSpeed,
     dmg,
     weapon.projectileColor,
-    owner
+    owner,
+    weaponKey
   );
   
   projectiles.push(projectile);
@@ -2429,7 +2726,8 @@ function startMatch(idx){
 
   state.playerMaxHP = Math.ceil(100 + 15 * Math.pow(1.15, gameSave.player.stats.health - 1));
   state.maxEnergy = Math.ceil(100 + 10 * Math.pow(1.15, gameSave.player.stats.energy - 1));
-  state.opponentMaxHP = Math.ceil(arena.baseHP * diff.hpMult * 1.5);
+  // Health is now driven directly by the LEVELS table — no hpMult or 1.5x bonus.
+  state.opponentMaxHP = Math.ceil(arena.baseHP);
   state.playerHP = state.playerMaxHP;
   state.opponentHP = state.opponentMaxHP;
   state.damageDealt = 0;
@@ -2683,17 +2981,24 @@ function selectDifficulty(key){
 }
 function buildArenaList(){
   const diff = DIFFICULTIES[state.difficulty];
-  const arenaListHtml = LEVELS.map((a, i) => {
-    const hp = Math.ceil(a.baseHP * diff.hpMult);
+  const start = diff.levelStart;
+  const end = diff.levelEnd;
+  // Show only the 10 levels that belong to the selected tier.
+  const arenaListHtml = LEVELS.slice(start, end + 1).map((a, i) => {
+    const levelIndex = start + i;          // absolute index into LEVELS (0-49)
+    const displayLevel = levelIndex + 1;   // human-readable level number (1-50)
+    const hp = Math.ceil(a.baseHP);        // fixed per level — no hpMult
     const reward = Math.ceil(a.reward * diff.rewardMult);
-    const won = gameSave.hasWonLevel(i);
-    const isLocked = i > 0 && !gameSave.hasWonLevel(i - 1);
-    
+    const won = gameSave.hasWonLevel(levelIndex);
+    // Lock if the previous level (across all tiers) has not been won.
+    // Level 1 (index 0) is always unlocked.
+    const isLocked = levelIndex > 0 && !gameSave.hasWonLevel(levelIndex - 1);
+
     if (isLocked) {
-      return `<div class="panel p-5" style="opacity:0.5; filter:grayscale(100%); cursor:not-allowed; background:rgba(0,0,0,0.3);"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold; color:#999;">${a.name}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px); color:#999;" class="text-sm"><span>🔒 WIN LEVEL ${i} TO UNLOCK</span><span>ENEMY CORE ${hp}</span></div></div>`;
+      return `<div class="panel p-5" style="opacity:0.5; filter:grayscale(100%); cursor:not-allowed; background:rgba(0,0,0,0.3);"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold; color:#999;">LVL ${displayLevel} · ${a.name}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px); color:#999;" class="text-sm"><span>🔒 WIN LEVEL ${displayLevel - 1} TO UNLOCK</span><span>ENEMY CORE ${hp}</span></div></div>`;
     } else {
       const checkmark = won ? ' ✓' : '';
-      return `<div class="panel p-5 cursor-pointer hover:border-cyan-400 transition-all" style="${won ? 'border-color:#00ff88;' : ''}" onclick="startMatch(${i})"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold;">${a.name}${checkmark}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px);" class="text-sm"><span>REWARD +${reward}</span><span>ENEMY CORE ${hp}</span></div></div>`;
+      return `<div class="panel p-5 cursor-pointer hover:border-cyan-400 transition-all" style="${won ? 'border-color:#00ff88;' : ''}" onclick="startMatch(${levelIndex})"><h3 style="font-size:clamp(13px,2.5vw,16px); font-weight:bold;">LVL ${displayLevel} · ${a.name}${checkmark}</h3><div style="display:flex; justify-content:space-between; margin-top:10px; font-size:clamp(11px,1.5vw,13px);" class="text-sm"><span>REWARD +${reward}</span><span>ENEMY CORE ${hp}</span></div></div>`;
     }
   }).join('');
   document.getElementById('arenaList').innerHTML = arenaListHtml;
@@ -3268,5 +3573,6 @@ window.switchTab = switchTab; window.switchGearTab = switchGearTab; window.toggl
 window.toggleHybridMode = toggleHybridMode; window.updateWeaponModeBadge = updateWeaponModeBadge;
 window.openLogoutModal = openLogoutModal; window.logout = logout; window.reset = reset;
 </script>
+<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v833ccba57c9e4d2798f2e76cebdd09a11778172276447" integrity="sha512-57MDmcccJXYtNnH+ZiBwzC4jb2rvgVCEokYN+L/nLlmO8rfYT/gIpW2A569iJ/3b+0UEasghjuZH/ma3wIs/EQ==" data-cf-beacon='{"version":"2024.11.0","token":"4edd5f8ec12a48cfa682ab8261b80a79","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
