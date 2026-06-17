@@ -2,32 +2,39 @@
   "name": "StackFolio Static Utilities Hub",
   "short_name": "StackFolio",
   "description": "Fast browser utilities - HTML Previewer, QR Generator, Clipboard Studio & more",
-  "start_url": "/",
+  "start_url": "/index.html",
   "scope": "/",
-  "id": "/",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
-  "background_color": "#0A1F3D",
-  "theme_color": "#0A1F3D",
+  "background_color": "#050816",
+  "theme_color": "#FFD700",
   "orientation": "portrait-primary",
   "lang": "en",
-  "categories": ["utilities", "productivity", "tools"],
+  "categories": ["utilities", "productivity"],
   "icons": [
     {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
       "src": "/icon-512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
     }
   ]
 }
