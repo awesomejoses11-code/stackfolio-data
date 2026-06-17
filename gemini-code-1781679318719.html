@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StackFolio Static Utilities Hub</title>
+  <meta name="description" content="A curated suite of standalone static utilities for developers, degens, and creators." />
+
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050816'/%3E%3Cpath d='M16 20h32v4H16zm0 10h24v4H16zm0 10h32v4H16z' fill='%23FFD700'/%3E%3C/svg%3E">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#050816">
+
+  <meta property="og:title" content="StackFolio Static Utilities Hub">
+  <meta property="og:description" content="A curated suite of standalone static utilities for developers, degens, and creators.">
+  <meta property="og:image" content="https://stackfolio-data.vercel.app/Stackfolio.png">
+  <meta property="og:url" content="https://stackfolio-data.vercel.app/">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+
+    :root {
+      --gold: #FFD700;
+      --deep-blue: #050816;
+      --card-blue: #0B1230;
+      --border-blue: rgba(255, 215, 0, 0.08);
+      --cyan: #00D2FF;
+    }
+
+    html, body {
+      background-color: #050816 !important;
+      color: #F8FAFC !important;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      background: #050816;
+    }
+
+    /* Ambient Space & Nebulae Layout Engine */
+    .space-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    /* Plasma Orb 1 */
+    .plasma-orb-1 {
+      position: absolute;
+      top: 10%;
+      left: 15%;
+      width: 45vw;
+      height: 45vw;
+      background: radial-gradient(circle, rgba(255, 215, 0, 0.05) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(40px);
+      animation: driftSlow 35s ease-in-out infinite alternate;
+    }
+
+    /* Plasma Orb 2 */
+    .plasma-orb-2 {
+      position: absolute;
+      bottom: 15%;
+      right: 10%;
+      width: 50vw;
+      height: 50vw;
+      background: radial-gradient(circle, rgba(0, 210, 255, 0.05) 0%, transparent 70%);
+      border-radius: 50%;
+      filter: blur(40px);
+      animation: driftSlow 45s ease-in-out infinite alternate-reverse;
+    }
+
+    /* Moving Star Grid */
+    .star-bg {
+      position: absolute;
+      inset: 0;
+      background-image: 
+        radial-gradient(1px 1px at 20px 30px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 75px 140px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 120px 320px, rgba(255, 215, 0, 0.5), rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 240px 190px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 310px 480px, rgba(0, 210, 255, 0.4), rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 450px 250px, rgba(255,255,255,0.35), rgba(0,0,0,0));
+      background-size: 500px 500px;
+      animation: starDrift 110s linear infinite;
+      opacity: 0.7;
+    }
+
+    /* Interactive Moving Cosmic Dust */
+    .cosmic-dust {
+      position: absolute;
+      width: 4px;
+      height: 4px;
+      background: #fff;
+      border-radius: 50%;
+      opacity: 0.3;
+      box-shadow: 0 0 10px rgba(255,255,255,0.8);
+      animation: riseDust 24s linear infinite;
+    }
+
+    /* Shooting Stars Layer */
+    .shooting-star {
+      position: absolute;
+      top: -10px;
+      left: 70%;
+      width: 2px;
+      height: 80px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.9), transparent);
+      transform: rotate(45deg);
+      opacity: 0;
+      animation: shoot 8s ease-out infinite;
+    }
+
+    .shooting-star-2 {
+      left: 30%;
+      animation-delay: 3s;
+      animation-duration: 12s;
+    }
+
+    @keyframes driftSlow {
+      0% { transform: translate(0, 0) scale(1); }
+      100% { transform: translate(6% , 8%) scale(1.15); }
+    }
+
+    @keyframes starDrift {
+      from { background-position: 0 0; }
+      to { background-position: 500px 1000px; }
+    }
+
+    @keyframes riseDust {
+      0% { transform: translateY(110vh) translateX(0) scale(0.6); opacity: 0; }
+      10% { opacity: 0.4; }
+      90% { opacity: 0.4; }
+      100% { transform: translateY(-10vh) translateX(100px) scale(1.3); opacity: 0; }
+    }
+
+    @keyframes shoot {
+      0% { transform: translate(0, 0) rotate(45deg) scale(0); opacity: 0; }
+      1% { opacity: 0.9; }
+      10% { transform: translate(-300px, 300px) rotate(45deg) scale(1); opacity: 0; }
+      100% { transform: translate(-300px, 300px) rotate(45deg) scale(0); opacity: 0; }
+    }
+
+    /* Glassmorph Core Elements */
+    .glass {
+      background: rgba(11, 18, 48, 0.45);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--border-blue);
+      transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .glass-card-hover:hover {
+      background: rgba(11, 18, 48, 0.75);
+      border-color: rgba(255, 215, 0, 0.25);
+      transform: translateY(-5px);
+      box-shadow: 0 20px 40px rgba(5, 8, 22, 0.6), 0 1px 20px rgba(255, 215, 0, 0.05);
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%);
+      color: #050816;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 4px 14px rgba(255, 215, 0, 0.15);
+    }
+
+    .btn-gold:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(255, 215, 0, 0.3);
+      filter: brightness(1.08);
+    }
+
+    .btn-outline {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-outline:hover {
+      background: rgba(255, 255, 255, 0.08);
+      border-color: rgba(255, 255, 255, 0.2);
+      transform: translateY(-2px);
+    }
+  </style>
+</head>
+<body class="relative text-slate-200">
+
+  <div class="space-canvas">
+    <div class="plasma-orb-1"></div>
+    <div class="plasma-orb-2"></div>
+    <div class="star-bg"></div>
+    <div class="cosmic-dust" style="left: 10%; animation-delay: 0s; animation-duration: 22s;"></div>
+    <div class="cosmic-dust" style="left: 35%; animation-delay: 5s; animation-duration: 18s; width: 3px; height: 3px;"></div>
+    <div class="cosmic-dust" style="left: 60%; animation-delay: 2s; animation-duration: 28s;"></div>
+    <div class="cosmic-dust" style="left: 85%; animation-delay: 11s; animation-duration: 20s; width: 3px; height: 3px;"></div>
+    <div class="shooting-star"></div>
+    <div class="shooting-star shooting-star-2"></div>
+  </div>
+
+  <div id="install-prompt" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:max-w-md glass p-5 rounded-2xl flex items-center gap-4 z-50 shadow-2xl border-yellow-500/20 bg-[#0B1230]/90">
+    <div class="flex-shrink-0">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#00D2FF] flex items-center justify-center text-black">
+        <i class="fa-solid fa-cloud-arrow-down text-base"></i>
+      </div>
+    </div>
+    <div class="flex-1 min-w-0">
+      <h3 class="text-sm font-bold text-white tracking-wide">Install StackFolio Pro</h3>
+      <p class="text-xs text-slate-400 mt-0.5">Secure, low-latency offline workspace access.</p>
+    </div>
+    <div class="flex items-center gap-2 flex-shrink-0">
+      <button onclick="installPWA()" class="btn-gold px-3.5 py-2 rounded-xl text-xs font-extrabold tracking-wide">
+        Install
+      </button>
+      <button onclick="dismissInstallPrompt()" class="text-slate-400 hover:text-white transition-colors p-1.5 rounded-lg hover:bg-white/5">
+        <i class="fa-solid fa-xmark text-sm"></i>
+      </button>
+    </div>
+  </div>
+
+  <header class="p-5 glass border-b border-white/5 flex justify-between items-center z-10 relative shrink-0">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/10 text-sm">
+        SF
+      </div>
+      <div>
+        <h1 class="text-[10px] font-black uppercase tracking-[0.25em] text-white/30 leading-none">awesomejoses11-code</h1>
+        <p class="text-sm font-extrabold text-[#FFD700] mt-1 tracking-tight">StackFolio Data</p>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <a href="mailto:awesomejoses11@gmail.com" class="hidden md:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-[#FFD700] transition-all">
+        <i class="fa-solid fa-envelope"></i>
+        <span>Contact & Collaborate</span>
+      </a>
+
+      <button onclick="copyRepoLink()" class="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-mono text-slate-300 transition-all">
+        <i class="fa-brands fa-github text-[#FFD700]"></i>
+        <span>stackfolio-data</span>
+      </button>
+
+      <div class="text-[11px] font-mono bg-emerald-500/5 border border-emerald-500/10 px-3 py-1.5 rounded-xl flex items-center gap-2 font-bold text-emerald-400">
+        <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Live Sync Active
+      </div>
+    </div>
+  </header>
+
+  <section class="max-w-4xl w-full mx-auto text-center px-6 pt-16 pb-8 space-y-5 z-10 relative">
+    <div class="inline-flex items-center gap-2 bg-yellow-500/5 border border-yellow-500/10 px-3.5 py-1.5 rounded-full text-[11px] font-bold text-yellow-500 tracking-wide">
+      <i class="fa-solid fa-wand-magic-sparkles"></i> Static Browser Utilities Suite
+    </div>
+
+    <h2 class="text-4xl sm:text-6xl font-black uppercase tracking-tight leading-[1.05] text-white">
+      Clean tools that <span class="text-[#00D2FF]">run instantly</span>.
+    </h2>
+
+    <p class="text-slate-400 text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+      A workspace of modular, client-side utilities. No analytical cookie tracking, no sign-ups required, and zero network bloat.
+    </p>
+
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4">
+      <button onclick="scrollToWorkspace()" class="w-full sm:w-auto btn-gold px-6 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-widest flex items-center justify-center gap-2">
+        <i class="fa-solid fa-compass"></i> Explore Utilities
+      </button>
+      
+      <button id="hero-install-btn" onclick="installPWA()" class="w-full sm:w-auto btn-outline px-6 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-widest text-[#FFD700] flex items-center justify-center gap-2">
+        <i class="fa-solid fa-mobile-screen-button"></i>
+        <span id="install-btn-text">Install App</span>
+      </button>
+    </div>
+  </section>
+
+  <main id="workspace-grid" class="max-w-6xl w-full mx-auto px-6 pb-12 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 z-10 relative flex-1">
+
+    <a href="preview.html" class="glass glass-card-hover p-6 rounded-[1.75rem] flex flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-yellow-500/5 border border-yellow-500/10 flex items-center justify-center text-[#FFD700] text-lg group-hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-square-rss"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white flex items-center justify-between">
+            Live HTML Previewer
+            <span class="text-[9px] bg-yellow-500/10 text-yellow-400 border border-yellow-500/20 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+            Real-time sandboxed processing engine for custom HTML templates. View layout previews, console responses, and dynamic components instantly.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[10px] font-mono text-slate-500">preview.html</span>
+        <span class="text-xs font-bold text-yellow-500 flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          Launch Tool <i class="fa-solid fa-arrow-right text-[9px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <a href="clipboard assistant.html" class="glass glass-card-hover p-6 rounded-[1.75rem] flex flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-cyan-500/5 border border-cyan-500/10 flex items-center justify-center text-[#00D2FF] text-lg group-hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-note-sticky"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white flex items-center justify-between">
+            Clipboard Studio
+            <span class="text-[9px] bg-cyan-500/10 text-[#00D2FF] border-cyan-500/20 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+            Sanitize text blocks, process regex filtering configurations, clean markdown whitespace arrays, and export standard `.docx` files securely.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[10px] font-mono text-slate-500">clipboard assistant.html</span>
+        <span class="text-xs font-bold text-[#00D2FF] flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          Open Studio <i class="fa-solid fa-arrow-right text-[9px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <a href="qr-code-generator.html" class="glass glass-card-hover p-6 rounded-[1.75rem] flex flex-col justify-between space-y-6 group">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg group-hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-qrcode"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white flex items-center justify-between">
+            QR Generator Studio
+            <span class="text-[9px] bg-emerald-500/10 text-emerald-400 border-emerald-500/20 px-1.5 py-0.5 rounded font-bold">ACTIVE</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+            Construct dynamic mathematical vectors of QR matrices. Supports high-fidelity customization models with background layer asset mapping.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[10px] font-mono text-slate-500">qr-code-generator.html</span>
+        <span class="text-xs font-bold text-emerald-400 flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          Generate QR <i class="fa-solid fa-arrow-right text-[9px]"></i>
+        </span>
+      </div>
+    </a>
+
+    <a href="https://stackfolio-data.vercel.app/Neon_Fury.html" target="_blank" class="glass glass-card-hover p-6 rounded-[1.75rem] flex flex-col justify-between space-y-6 group border-purple-500/20">
+      <div class="space-y-4">
+        <div class="w-12 h-12 rounded-2xl bg-purple-500/5 border border-purple-500/10 flex items-center justify-center text-purple-400 text-lg group-hover:scale-105 transition-transform duration-300">
+          <i class="fa-solid fa-gamepad"></i>
+        </div>
+        <div>
+          <h3 class="text-base font-extrabold text-white flex items-center justify-between">
+            Neon Fury
+            <span class="text-[9px] bg-purple-500/10 text-purple-400 border-purple-500/20 px-1.5 py-0.5 rounded font-bold">GAME</span>
+          </h3>
+          <p class="text-xs text-slate-400 mt-2.5 leading-relaxed">
+            Fast-paced canvas rendering endless runner matrix. Navigate through vector structures and optimize high scores over memory channels.
+          </p>
+        </div>
+      </div>
+      <div class="flex items-center justify-between pt-4 border-t border-white/5">
+        <span class="text-[10px] font-mono text-slate-500">Neon Fury.html</span>
+        <span class="text-xs font-bold text-purple-400 flex items-center gap-1.5 group-hover:translate-x-1 transition-transform">
+          Play Now <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+        </span>
+      </div>
+    </a>
+  </main>
+
+  <section class="max-w-md w-full mx-auto px-6 pb-12 z-10 relative">
+    <div class="glass p-6 rounded-2xl bg-[#0B1230]/20 flex flex-col items-center text-center gap-3">
+      <div class="w-10 h-10 rounded-full bg-yellow-500/5 border border-yellow-500/15 flex items-center justify-center text-[#FFD700]">
+        <i class="fa-solid fa-envelope-open-text"></i>
+      </div>
+      <div>
+        <h4 class="text-xs font-bold text-white uppercase tracking-wider">Support & Collaboration</h4>
+        <p class="text-xs text-slate-400 mt-1 leading-relaxed">
+          Have processing pipeline ideas or want to implement new tools inside the static utility canvas?
+        </p>
+      </div>
+      <a href="mailto:awesomejoses11@gmail.com" class="text-xs font-mono text-[#00D2FF] hover:underline font-bold tracking-wide">
+        awesomejoses11@gmail.com
+      </a>
+    </div>
+  </section>
+
+  <div id="toast" class="fixed bottom-6 right-6 bg-[#0B1230]/90 backdrop-blur-md border border-yellow-500/20 px-4 py-3 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 z-50 shadow-xl">
+    <div class="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+      <i class="fa-solid fa-circle-check text-xs" id="toast-icon"></i>
+    </div>
+    <span id="toast-text" class="text-xs font-semibold text-slate-200">Action Complete</span>
+  </div>
+
+  <footer class="p-8 text-center text-[10px] text-slate-600 uppercase tracking-widest font-bold border-t border-white/5 shrink-0 z-10 relative">
+    © 2026 awesomejoses11-code • StackFolio Utilities Platform
+  </footer>
+
+  <script>
+    // Native Chromium Web App Installation Context Controller
+    let deferredPrompt = null;
+
+    // Listen for the Chrome App installation trigger
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent original Chrome automatic trigger banner
+      e.preventDefault();
+      deferredPrompt = e;
+      
+      // Update the inline Hero button state to invite installation
+      const heroBtn = document.getElementById('hero-install-btn');
+      const btnText = document.getElementById('install-btn-text');
+      
+      if (heroBtn && btnText) {
+        btnText.innerText = "Install App";
+        heroBtn.classList.remove('opacity-50');
+      }
+
+      // Check if user has explicitly dismissed the persistent bar prompt
+      if (localStorage.getItem('installPromptDismissed') !== 'true') {
+        document.getElementById('install-prompt').classList.remove('hidden');
+      }
+    });
+
+    // Fire the installation flow
+    function installPWA() {
+      if (!deferredPrompt) {
+        // Fallback user feedback if the app is already installed or browser isn't PWA-ready
+        showToast('App is ready or already installed!', 'circle-check');
+        return;
+      }
+      
+      deferredPrompt.prompt();
+      deferredPrompt.userChoice.then((choiceResult) => {
+        if (choiceResult.outcome === 'accepted') {
+          showToast('StackFolio app successfully installed!', 'circle-check');
+          
+          // Switch CTA button status
+          const btnText = document.getElementById('install-btn-text');
+          if (btnText) btnText.innerText = "App Installed";
+        }
+        deferredPrompt = null;
+        dismissInstallPrompt();
+      });
+    }
+
+    function dismissInstallPrompt() {
+      document.getElementById('install-prompt').classList.add('hidden');
+      localStorage.setItem('installPromptDismissed', 'true');
+    }
+
+    // Scroll smoothly to Workspace Area
+    function scrollToWorkspace() {
+      const grid = document.getElementById('workspace-grid');
+      if (grid) {
+        grid.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // Modern Clipboard Proxy Engine
+    async function copyRepoLink() {
+      const repoUrl = "awesomejoses11-code/stackfolio-data";
+      try {
+        await navigator.clipboard.writeText(repoUrl);
+        showToast('Repository context path copied!', 'circle-check');
+      } catch (err) {
+        // Traditional Fallback
+        const tempArea = document.createElement("textarea");
+        tempArea.value = repoUrl;
+        document.body.appendChild(tempArea);
+        tempArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(tempArea);
+        showToast('Repository context path copied!', 'circle-check');
+      }
+    }
+
+    // Global Notification Controller
+    function showToast(text, iconClass = 'circle-check') {
+      const toast = document.getElementById('toast');
+      const icon = document.getElementById('toast-icon');
+      const textSpan = document.getElementById('toast-text');
+
+      icon.className = `fa-solid fa-${iconClass} text-xs`;
+      textSpan.innerText = text;
+
+      toast.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      
+      clearTimeout(window.toastTimeout);
+      window.toastTimeout = setTimeout(() => {
+        toast.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
+      }, 3000);
+    }
+  </script>
+</body>
+</html>
