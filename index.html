@@ -6,7 +6,7 @@
   <title>StackFolio Static Utilities Hub</title>
   <meta name="description" content="A curated suite of standalone static utilities for developers, degens, and creators." />
 
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050816'/%3E%3Cpath d='M16 20h32v4H16zm0 10h24v4H16zm0 10h32v4H16z' fill='%23FFD700'/%3E%3C/svg%3E">
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23050816'/%3E%3Cpath d='M[...]
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#050816">
 
@@ -207,7 +207,7 @@
     <div class="shooting-star shooting-star-2"></div>
   </div>
 
-  <div id="install-prompt" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:max-w-md glass p-5 rounded-2xl flex items-center gap-4 z-50 shadow-2xl border-yellow-500/20 bg-[#0B1230]/90">
+  <div id="install-prompt" class="hidden fixed bottom-6 left-6 right-6 sm:left-auto sm:right-6 sm:max-w-md glass p-5 rounded-2xl flex items-center gap-4 z-50 shadow-2xl border-yellow-500/20 bg-[#0B123[...]
     <div class="flex-shrink-0">
       <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#00D2FF] flex items-center justify-center text-black">
         <i class="fa-solid fa-cloud-arrow-down text-base"></i>
@@ -239,12 +239,12 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <a href="mailto:awesomejoses11@gmail.com" class="hidden md:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-[#FFD700] transition-all">
+      <a href="mailto:awesomejoses11@gmail.com" class="hidden md:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-bold text-[#FFD700] trans[...]
         <i class="fa-solid fa-envelope"></i>
         <span>Contact & Collaborate</span>
       </a>
 
-      <button onclick="copyRepoLink()" class="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-mono text-slate-300 transition-all">
+      <button onclick="copyRepoLink()" class="hidden lg:flex items-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 px-4 py-2 rounded-xl text-xs font-mono text-slate-300 transition-all[...]
         <i class="fa-brands fa-github text-[#FFD700]"></i>
         <span>stackfolio-data</span>
       </button>
@@ -273,7 +273,7 @@
         <i class="fa-solid fa-compass"></i> Explore Utilities
       </button>
       
-      <button id="hero-install-btn" onclick="installPWA()" class="w-full sm:w-auto btn-outline px-6 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-widest text-[#FFD700] flex items-center justify-center gap-2">
+      <button id="hero-install-btn" onclick="installPWA()" class="w-full sm:w-auto btn-outline px-6 py-3.5 rounded-xl text-xs font-extrabold uppercase tracking-widest text-[#FFD700] flex items-center [...]
         <i class="fa-solid fa-mobile-screen-button"></i>
         <span id="install-btn-text">Install App</span>
       </button>
@@ -330,7 +330,7 @@
 
     <a href="qr-code-generator.html" class="glass glass-card-hover p-6 rounded-[1.75rem] flex flex-col justify-between space-y-6 group">
       <div class="space-y-4">
-        <div class="w-12 h-12 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg group-hover:scale-105 transition-transform duration-300">
+        <div class="w-12 h-12 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 flex items-center justify-center text-emerald-400 text-lg group-hover:scale-105 transition-transform duration-30[...]
           <i class="fa-solid fa-qrcode"></i>
         </div>
         <div>
@@ -392,7 +392,7 @@
     </div>
   </section>
 
-  <div id="toast" class="fixed bottom-6 right-6 bg-[#0B1230]/90 backdrop-blur-md border border-yellow-500/20 px-4 py-3 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all duration-300 flex items-center gap-3 z-50 shadow-xl">
+  <div id="toast" class="fixed bottom-6 right-6 bg-[#0B1230]/90 backdrop-blur-md border border-yellow-500/20 px-4 py-3 rounded-xl transform translate-y-20 opacity-0 pointer-events-none transition-all [...]
     <div class="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
       <i class="fa-solid fa-circle-check text-xs" id="toast-icon"></i>
     </div>
@@ -404,6 +404,11 @@
   </footer>
 
   <script>
+    // Register Service Worker for PWA support
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
+
     // Native Chromium Web App Installation Context Controller
     let deferredPrompt = null;
 
