@@ -2,7 +2,7 @@
   "name": "StackFolio Static Utilities Hub",
   "short_name": "StackFolio",
   "description": "Fast browser utilities - HTML Previewer, QR Generator, Clipboard Studio & more",
-  "start_url": "/index.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#050816",
