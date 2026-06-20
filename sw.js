@@ -1,48 +1,3 @@
-// Service Worker for StackFolio PWA
-const CACHE_NAME = 'stackfolio-v2';
-const urlsToCache = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icon-192.png',
-  '/icon-512.png',
-  '/clipboard assistant.html',
-  '/qr-code-generator.html',
-  '/preview.html',
-  '/Neon_Fury.html'
-];
-
-self.addEventListener('install', (event) => {
-  console.log('[SW] Installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching app shell');
-      return cache.addAll(urlsToCache).catch((error) => {
-        console.warn('[SW] Cache addAll error:', error);
-        // Continue even if some files fail to cache
-      });
-    })
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', (event) => {
-  console.log('[SW] Activating...');
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((cacheName) => cacheName !== CACHE_NAME)
-          .map((cacheName) => {
-            console.log('[SW] Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          })
-      );
-    })
-  );
-  self.clients.claim();
-});
-
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
@@ -57,10 +12,10 @@ self.addEventListener('fetch', (event) => {
         return response;
       }
 
-      // Otherwise fetch from network
-      return fetch(request).then((networkResponse) => {
-        // Cache successful responses
-        if (networkResponse && networkResponse.status === 200) {
+      // Fetch from network WITH redirect following
+      return fetch(request, { redirect: 'follow' }).then((networkResponse) => {
+        // Only cache successful, non-redirect responses
+        if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
             cache.put(request, responseToCache);
@@ -68,7 +23,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch((error) => {
-        console.log('[SW] Fetch failed, offline:', request.url);
+        console.log('[SW] Fetch failed, offline:', request.url, error);
         // Return cached index.html as fallback
         return caches.match('/index.html');
       });
