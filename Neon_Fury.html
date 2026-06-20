@@ -688,6 +688,51 @@ const ENEMY_TYPES = {
   legend: { name: 'NEXUS OVERLORD', icon: 'fa-crown', aggression: 0.9, defense: 0.9, strategy: 'legend' }
 };
 
+// ===== ENEMY VISUAL VARIATION =====
+// Color palettes per enemy archetype. Each entry is a curated hue list so the
+// fighter still reads as that archetype while feeling unique each spawn.
+const ENEMY_COLORS = {
+  striker:  [0xff4d4d, 0xff6b3a, 0xff2a6b, 0xcc3333, 0xff8844], // fiery reds/oranges
+  defender: [0x1e90ff, 0x00bfff, 0x4a90e2, 0x2255cc, 0x66c0ff], // cool defensive blues
+  balanced: [0x00ff88, 0x33cc99, 0x66ffaa, 0x22dd66, 0x00cc77], // bio-green hybrids
+  tactical: [0xffaa00, 0xffcc44, 0xdd8800, 0xffbb22, 0xffd866], // tactical amber/gold
+  legend:   [0xff00ff, 0xcc33ff, 0x9933ff, 0xee44ff, 0x7a00ff]  // overlord magentas/violets
+};
+
+// Weapon archetype per enemy type. Drives geometry in buildMesh() opponent branch.
+// 'sword' = tapered blade, 'axe' = wide head, 'lance' = pointed spear,
+// 'reaper' = scythe-like, 'hammer' = box head, 'twin' = two-blade for legend.
+const ENEMY_WEAPON_STYLES = {
+  striker:  'sword',
+  defender: 'hammer',
+  balanced: 'axe',
+  tactical: 'lance',
+  legend:   'reaper'
+};
+
+// Pick a deterministic-but-varied color from the archetype palette.
+// Using levelIdx as a seed offset keeps the same enemy looking the same on a
+// given level (helpful for save/load + replay), while different levels of the
+// same archetype still get visually different hues.
+function pickEnemyColor(enemyType, seed){
+  const palette = ENEMY_COLORS[enemyType] || ENEMY_COLORS.balanced;
+  const idx = ((seed | 0) + palette.length) % palette.length;
+  return palette[idx];
+}
+
+// Shift a hex color in HSL space; used to derive coherent stripe/pants colors
+// from the enemy's main shirt color so the whole costume reads as one outfit.
+function shiftHexHSL(hex, deltaHueDeg, satMult, lightMult){
+  const c = new THREE.Color(hex);
+  const hsl = { h: 0, s: 0, l: 0 };
+  c.getHSL(hsl);
+  hsl.h = (hsl.h + deltaHueDeg / 360 + 1) % 1;
+  hsl.s = Math.max(0, Math.min(1, hsl.s * (satMult ?? 1)));
+  hsl.l = Math.max(0, Math.min(1, hsl.l * (lightMult ?? 1)));
+  c.setHSL(hsl.h, hsl.s, hsl.l);
+  return c.getHex();
+}
+
 // Get the highest completed level
 function getHighestCompletedLevel(){
   let highest = -1;
@@ -934,7 +979,11 @@ const sfx = {
    NOT via scale.x — this matches the animator file exactly.
 ===================================================================== */
 class HumanoidFighter {
-  constructor(color, x, facing){
+  // opts: optional { isPlayer, enemyType, weaponStyle, scale, emissiveBoost }
+  // Backward compatible: existing call sites (color, x, facing) still work and
+  // auto-detect isPlayer from the player cyan, as before.
+  constructor(color, x, facing, opts){
+    opts = opts || {};
     this.color = color;
     this.x = x;
     this.y = 0;
@@ -961,20 +1010,31 @@ class HumanoidFighter {
     this.glowAura = null;      // translucent shell mesh
     this.hp = 100;
     this.maxHp = 100;
-    this.isPlayer = (color === 0x00d9ff);
+    // Prefer explicit flag; fall back to legacy color check for compatibility.
+    this.isPlayer = (typeof opts.isPlayer === 'boolean') ? opts.isPlayer : (color === 0x00d9ff);
+    // Visual-variation knobs (opponent only — player visuals remain unchanged).
+    this.enemyType     = opts.enemyType     || null;
+    this.weaponStyle   = opts.weaponStyle   || null;
+    this.visualScale   = (typeof opts.scale === 'number') ? opts.scale : 1;
+    this.emissiveBoost = (typeof opts.emissiveBoost === 'number') ? opts.emissiveBoost : 1;
   }
 
   buildMesh(){
     const character = new THREE.Group();
 
     // ---- MATERIALS (palette derived from animator file, recolored per side) ----
-    const shirtColor = this.isPlayer ? 0x00d9ff : 0xff3aa8;
-    const stripeColor = this.isPlayer ? 0xffd60a : 0x00ffff;
-    const pantsColor = this.isPlayer ? 0x2c5282 : 0x4c1d95;
+    // Player keeps the original cyan/gold/navy identity. Opponent now derives a
+    // coherent three-tone outfit from this.color via HSL shifts so each enemy
+    // reads as one cohesive design rather than a random color blob.
+    const shirtColor  = this.isPlayer ? 0x00d9ff : this.color;
+    const stripeColor = this.isPlayer ? 0xffd60a : shiftHexHSL(this.color,  60, 1.0, 1.35); // brighter complementary stripe
+    const pantsColor  = this.isPlayer ? 0x2c5282 : shiftHexHSL(this.color, -10, 0.7, 0.45); // darker matching pants
+    // Per-enemy emissive boost so some archetypes (e.g. legend) literally glow more.
+    const eBoost = this.isPlayer ? 1 : this.emissiveBoost;
 
     const skinMat  = new THREE.MeshStandardMaterial({ color: 0xddb582, roughness: 0.4, metalness: 0 });
-    const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.45, metalness: 0.1, emissive: shirtColor, emissiveIntensity: 0.15 });
-    const stripeMat= new THREE.MeshStandardMaterial({ color: stripeColor, roughness: 0.5, metalness: 0.1, emissive: stripeColor, emissiveIntensity: 0.25 });
+    const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.45, metalness: 0.1, emissive: shirtColor, emissiveIntensity: 0.15 * eBoost });
+    const stripeMat= new THREE.MeshStandardMaterial({ color: stripeColor, roughness: 0.5, metalness: 0.1, emissive: stripeColor, emissiveIntensity: 0.25 * eBoost });
     const pantsMat = new THREE.MeshStandardMaterial({ color: pantsColor, roughness: 0.5, metalness: 0 });
     const bootsMat = new THREE.MeshStandardMaterial({ color: 0x4a3728, roughness: 0.6, metalness: 0.1 });
 
@@ -1340,14 +1400,126 @@ class HumanoidFighter {
         legRRig.foot.add(tR);
       }
     } else {
-      // opponent default blade
-      const opWeapon = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8),
-        new THREE.MeshStandardMaterial({ color: 0xff3aa8, emissive: 0xff3aa8, emissiveIntensity: 3 })
+      // ===== OPPONENT VISUAL VARIATION =====
+      // Weapon shape varies by archetype (striker→sword, defender→hammer,
+      // balanced→axe, tactical→lance, legend→reaper). Weapon color is tied to
+      // the fighter's main color via an HSL shift so it visually coordinates
+      // with the outfit. Hitbox is unchanged — only the rendered mesh varies.
+      const wColor     = shiftHexHSL(this.color, 15, 1.0, 1.25); // slightly hotter than shirt
+      const wEmissive  = shiftHexHSL(this.color, 30, 1.0, 1.5);
+      const style      = this.weaponStyle || 'sword';
+      const opWeaponGroup = new THREE.Group();
+
+      const mkMat = (intensity) => new THREE.MeshStandardMaterial({
+        color: wColor, emissive: wEmissive, emissiveIntensity: intensity * eBoost,
+        metalness: 0.3, roughness: 0.25
+      });
+
+      if (style === 'sword') {
+        // Tapered laser blade with a small guard.
+        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8), mkMat(3.0));
+        blade.rotation.x = Math.PI / 2;
+        blade.position.z = 0.42;
+        opWeaponGroup.add(blade);
+        const guard = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.025, 0.025), mkMat(2.0));
+        guard.position.set(0, -0.05, 0.03);
+        opWeaponGroup.add(guard);
+      }
+      else if (style === 'axe') {
+        // Wide, flat axe head on a short shaft.
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.1, 0.55), mkMat(3.2));
+        head.position.z = 0.55;
+        opWeaponGroup.add(head);
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.7, 8), mkMat(1.8));
+        shaft.rotation.x = Math.PI / 2;
+        shaft.position.z = 0.3;
+        opWeaponGroup.add(shaft);
+      }
+      else if (style === 'lance') {
+        // Long thin shaft with a cone tip — classic spear silhouette.
+        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.95, 8), mkMat(2.5));
+        shaft.rotation.x = Math.PI / 2;
+        shaft.position.z = 0.45;
+        opWeaponGroup.add(shaft);
+        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.28, 10), mkMat(3.5));
+        tip.rotation.x = Math.PI / 2;
+        tip.position.z = 0.96;
+        opWeaponGroup.add(tip);
+      }
+      else if (style === 'hammer') {
+        // Big rectangular hammer head on a thick handle — reads as 'defender'.
+        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.28), mkMat(2.6));
+        headMesh.position.z = 0.7;
+        opWeaponGroup.add(headMesh);
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.78, 8), mkMat(1.6));
+        handle.rotation.x = Math.PI / 2;
+        handle.position.z = 0.36;
+        opWeaponGroup.add(handle);
+      }
+      else if (style === 'reaper') {
+        // Scythe / reaper — elongated blade plus a long curved-feeling handle.
+        // Reserved for the 'legend' archetype: deliberately oversized + extra glow.
+        const bladePart = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.06, 1.0, 8), mkMat(3.8));
+        bladePart.rotation.x = Math.PI / 2;
+        bladePart.rotation.z = 0.25; // slight tilt for menace
+        bladePart.scale.z = 1.3;
+        bladePart.position.set(0.05, 0.02, 0.55);
+        opWeaponGroup.add(bladePart);
+        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.7, 8), mkMat(2.0));
+        handle.rotation.x = Math.PI / 2;
+        handle.position.z = 0.2;
+        opWeaponGroup.add(handle);
+      }
+      else {
+        // Fallback — original blade design, preserves any unknown style key.
+        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8), mkMat(3.0));
+        blade.rotation.x = Math.PI / 2;
+        blade.position.z = 0.42;
+        opWeaponGroup.add(blade);
+      }
+
+      opWeaponGroup.position.set(0, -0.05, 0);
+      rightArmRig.hand.add(opWeaponGroup);
+
+      // ===== OPPONENT CHEST ARMOR (cosmetic) =====
+      // Light chest plate in a contrasting hue so the fighter doesn't read as a
+      // bare cylinder. Defenders get a beefier plate; legends get side plates too.
+      const armorColor = shiftHexHSL(this.color, -25, 0.6, 0.6);
+      const armorMat = new THREE.MeshStandardMaterial({
+        color: armorColor, metalness: 0.85, roughness: 0.25,
+        emissive: armorColor, emissiveIntensity: 0.3 * eBoost
+      });
+      const plateScale = (style === 'hammer') ? 1.15 : (style === 'reaper') ? 1.2 : 1.0;
+      const chestPlate = new THREE.Mesh(
+        new THREE.BoxGeometry(0.42 * plateScale, 0.42 * plateScale, 0.07),
+        armorMat
       );
-      opWeapon.rotation.x = Math.PI / 2;
-      opWeapon.position.set(0, -0.05, 0.42);
-      rightArmRig.hand.add(opWeapon);
+      chestPlate.position.z = 0.21;
+      chestPlate.castShadow = true;
+      torsoGroup.add(chestPlate);
+
+      if (style === 'reaper' || style === 'hammer') {
+        const sideL = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.38, 0.07), armorMat);
+        sideL.position.set(-0.28 * plateScale, 0, 0.17);
+        torsoGroup.add(sideL);
+        const sideR = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.38, 0.07), armorMat);
+        sideR.position.set( 0.28 * plateScale, 0, 0.17);
+        torsoGroup.add(sideR);
+      }
+
+      // ===== OPPONENT HELMET ACCENT =====
+      // Small emissive band around the head — cheap way to make each enemy
+      // read as a distinct character without changing the head silhouette.
+      const visor = new THREE.Mesh(
+        new THREE.TorusGeometry(0.205, 0.025, 8, 24),
+        new THREE.MeshStandardMaterial({
+          color: stripeColor, emissive: stripeColor,
+          emissiveIntensity: 1.4 * eBoost, metalness: 0.6, roughness: 0.2
+        })
+      );
+      visor.rotation.x = Math.PI / 2;
+      visor.position.y = 1.4;
+      character.add(visor);
     }
 
     // ---- TRACKER LIGHT ----
@@ -1964,11 +2136,44 @@ function spawnFighters(){
   if (playerFighter && playerFighter.group) scene.remove(playerFighter.group);
   if (opponentFighter && opponentFighter.group) scene.remove(opponentFighter.group);
 
-  const opponentColor = LEVELS[state.levelIdx].color;
-  playerFighter = new HumanoidFighter(0x00d9ff, -2.5, 1);
-  opponentFighter = new HumanoidFighter(opponentColor, 2.5, -1);
+  // ----- Opponent visual variation -----
+  // The archetype (state.enemyType) drives both color palette and weapon shape;
+  // levelIdx seeds the palette so the same level always looks the same on
+  // replay (matches save/load expectations), but different levels of the same
+  // archetype get visually distinct hues. Combat numbers are untouched.
+  const enemyType   = state.enemyType || LEVELS[state.levelIdx].enemyType || 'balanced';
+  const enemyColor  = pickEnemyColor(enemyType, state.levelIdx);
+  const weaponStyle = ENEMY_WEAPON_STYLES[enemyType] || 'sword';
+
+  // Per-archetype size + glow. Legend bosses are visibly larger and brighter;
+  // strikers slightly leaner; defenders slightly bulkier. Hitbox/physics use
+  // fighter.x only, so visual scale never affects gameplay balance.
+  const archetypeScale = {
+    striker: 0.96, defender: 1.08, balanced: 1.0, tactical: 1.02, legend: 1.18
+  }[enemyType] || 1.0;
+  const archetypeGlow = {
+    striker: 1.1, defender: 0.9, balanced: 1.0, tactical: 1.0, legend: 1.6
+  }[enemyType] || 1.0;
+  // Small deterministic jitter (±5%) so two same-archetype enemies on adjacent
+  // levels still feel slightly different in stature.
+  const jitter = 1 + (((state.levelIdx * 37) % 11) - 5) * 0.01;
+  const finalScale = archetypeScale * jitter;
+
+  playerFighter   = new HumanoidFighter(0x00d9ff, -2.5, 1, { isPlayer: true });
+  opponentFighter = new HumanoidFighter(enemyColor, 2.5, -1, {
+    isPlayer: false,
+    enemyType,
+    weaponStyle,
+    scale: finalScale,
+    emissiveBoost: archetypeGlow
+  });
   scene.add(playerFighter.buildMesh());
   scene.add(opponentFighter.buildMesh());
+
+  // Apply visual scale on the opponent rig only (player rig stays at 1).
+  if (opponentFighter.group) {
+    opponentFighter.group.scale.set(finalScale, finalScale, finalScale);
+  }
 
   playerFighter.hp = state.playerMaxHP;
   playerFighter.maxHp = state.playerMaxHP;
