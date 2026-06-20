@@ -1,28 +1,21 @@
 // Service Worker for StackFolio PWA
-const CACHE_NAME = 'stackfolio-v3';
+const CACHE_NAME = 'stackfolio-v4';
 const urlsToCache = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/icon-192.png',
-  '/icon-512.png',
-  '/preview.html',
-  '/clipboard assistant.html',
-  '/qr-code-generator.html',
-  '/Neon_Fury.html'
+  '/icon-512.png'
+  // Remove HTML files - we'll handle them separately
 ];
 
 self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Pre-caching app shell');
-      // Manually fetch and cache each URL to handle redirects properly
+      console.log('[SW] Pre-caching assets');
       return Promise.all(
         urlsToCache.map((url) => {
           return fetch(url, { redirect: 'follow' })
             .then((response) => {
-              // Only cache successful responses
               if (response && response.status === 200) {
                 return cache.put(url, response);
               }
@@ -56,24 +49,53 @@ self.addEventListener('activate', (event) => {
 
 self.addEventListener('fetch', (event) => {
   const { request } = event;
+  const url = new URL(request.url);
 
   // Skip non-GET requests and chrome extensions
-  if (request.method !== 'GET' || request.url.startsWith('chrome-extension://')) {
+  if (request.method !== 'GET' || url.protocol === 'chrome-extension:') {
     return;
   }
 
+  // Network-first for HTML files (handles cleanUrls redirects)
+  if (url.pathname.endsWith('.html') || url.pathname === '/') {
+    event.respondWith(
+      fetch(request, { redirect: 'follow' })
+        .then((response) => {
+          if (response && response.status === 200) {
+            // Cache successful HTML pages
+            const responseToCache = response.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request.url, responseToCache);
+            });
+          }
+          return response;
+        })
+        .catch(() => {
+          console.log('[SW] Network failed, serving from cache:', request.url);
+          // Fall back to cache if offline
+          return caches.match(request.url).then((cachedResponse) => {
+            if (cachedResponse) {
+              console.log('[SW] Served from cache:', request.url);
+              return cachedResponse;
+            }
+            // Final fallback to index.html
+            return caches.match('/index.html');
+          });
+        })
+    );
+    return;
+  }
+
+  // Cache-first for assets (images, fonts, css, js)
   event.respondWith(
     caches.match(request).then((response) => {
-      // Return cached version if available
       if (response) {
         console.log('[SW] Served from cache:', request.url);
         return response;
       }
 
-      // Fetch from network with redirects
-      return fetch(request, { redirect: 'follow' })
+      return fetch(request)
         .then((networkResponse) => {
-          // Cache successful responses
           if (networkResponse && networkResponse.status === 200) {
             const responseToCache = networkResponse.clone();
             caches.open(CACHE_NAME).then((cache) => {
@@ -83,9 +105,8 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch((error) => {
-          console.log('[SW] Fetch failed, offline:', request.url, error);
-          // Return cached index.html as fallback
-          return caches.match('/index.html');
+          console.log('[SW] Asset fetch failed:', request.url);
+          return new Response('Asset unavailable', { status: 404 });
         });
     })
   );
