@@ -1,5 +1,5 @@
 // Service Worker for StackFolio PWA
-const CACHE_NAME = 'stackfolio-v2';
+const CACHE_NAME = 'stackfolio-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -16,11 +16,22 @@ self.addEventListener('install', (event) => {
   console.log('[SW] Installing service worker...');
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('[SW] Caching app shell');
-      return cache.addAll(urlsToCache).catch((error) => {
-        console.warn('[SW] Cache addAll error:', error);
-        // Continue even if some files fail to cache
-      });
+      console.log('[SW] Pre-caching app shell');
+      // Manually fetch and cache each URL to handle redirects properly
+      return Promise.all(
+        urlsToCache.map((url) => {
+          return fetch(url, { redirect: 'follow' })
+            .then((response) => {
+              // Only cache successful responses
+              if (response && response.status === 200) {
+                return cache.put(url, response);
+              }
+            })
+            .catch((error) => {
+              console.warn(`[SW] Failed to cache ${url}:`, error);
+            });
+        })
+      );
     })
   );
   self.skipWaiting();
@@ -46,8 +57,10 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event;
 
-  // Skip non-GET requests
-  if (request.method !== 'GET') return;
+  // Skip non-GET requests and chrome extensions
+  if (request.method !== 'GET' || request.url.startsWith('chrome-extension://')) {
+    return;
+  }
 
   event.respondWith(
     caches.match(request).then((response) => {
@@ -57,21 +70,23 @@ self.addEventListener('fetch', (event) => {
         return response;
       }
 
-      // Fetch from network WITH redirect following
-      return fetch(request, { redirect: 'follow' }).then((networkResponse) => {
-        // Only cache successful, non-redirect responses
-        if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(request, responseToCache);
-          });
-        }
-        return networkResponse;
-      }).catch((error) => {
-        console.log('[SW] Fetch failed, offline:', request.url, error);
-        // Return cached index.html as fallback
-        return caches.match('/index.html');
-      });
+      // Fetch from network with redirects
+      return fetch(request, { redirect: 'follow' })
+        .then((networkResponse) => {
+          // Cache successful responses
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch((error) => {
+          console.log('[SW] Fetch failed, offline:', request.url, error);
+          // Return cached index.html as fallback
+          return caches.match('/index.html');
+        });
     })
   );
 });
