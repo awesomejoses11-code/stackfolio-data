@@ -755,11 +755,11 @@ function isDifficultyUnlocked(diffKey){
 // Each tier unlocks a block of 10 levels. hpMult removed — health is fixed per
 // level via the LEVELS table. rewardMult still scales credits per tier.
 const DIFFICULTIES = {
-  novice: { key:'novice', label:'NOVICE', icon:'shield',  desc:'Levels 1-10',  color:'#34d399', rewardMult:1.0,     aiReact:1.2,  aiDmg:0.7,  levelStart:0,  levelEnd:9  },
-  amateur:{ key:'amateur',label:'AMATEUR',icon:'dumbbell',desc:'Levels 11-20', color:'#22d3ee', rewardMult:1.5,     aiReact:0.9,  aiDmg:1.0,  levelStart:10, levelEnd:19 },
-  pro:    { key:'pro',    label:'PRO',    icon:'fire',    desc:'Levels 21-30', color:'#fbbf24', rewardMult:2.25,    aiReact:0.7,  aiDmg:1.25, levelStart:20, levelEnd:29 },
-  expert: { key:'expert', label:'EXPERT', icon:'skull',   desc:'Levels 31-40', color:'#ec4899', rewardMult:5.625,   aiReact:0.55, aiDmg:1.45, levelStart:30, levelEnd:39 },
-  legend: { key:'legend', label:'LEGEND', icon:'crown',   desc:'Levels 41-50', color:'#ef4444', rewardMult:14.0625, aiReact:0.4,  aiDmg:1.75, levelStart:40, levelEnd:49 }
+  novice: { key:'novice', label:'NOVICE', icon:'shield',  desc:'Levels 1-10',  color:'#34d399', rewardMult:1.0,     aiReact:1.2,  aiDmg:0.7,  aggression:0.6,  comboChance:0.2, reactionSpeed:1.2, levelStart:0,  levelEnd:9  },
+  amateur:{ key:'amateur',label:'AMATEUR',icon:'dumbbell',desc:'Levels 11-20', color:'#22d3ee', rewardMult:1.5,     aiReact:0.9,  aiDmg:1.0,  aggression:0.8,  comboChance:0.35, reactionSpeed:0.9, levelStart:10, levelEnd:19 },
+  pro:    { key:'pro',    label:'PRO',    icon:'fire',    desc:'Levels 21-30', color:'#fbbf24', rewardMult:2.25,    aiReact:0.7,  aiDmg:1.25, aggression:1.0,  comboChance:0.5, reactionSpeed:0.7, levelStart:20, levelEnd:29 },
+  expert: { key:'expert', label:'EXPERT', icon:'skull',   desc:'Levels 31-40', color:'#ec4899', rewardMult:5.625,   aiReact:0.55, aiDmg:1.45, aggression:1.2,  comboChance:0.65, reactionSpeed:0.55, levelStart:30, levelEnd:39 },
+  legend: { key:'legend', label:'LEGEND', icon:'crown',   desc:'Levels 41-50', color:'#ef4444', rewardMult:14.0625, aiReact:0.4,  aiDmg:1.75, aggression:1.5,  comboChance:0.8, reactionSpeed:0.4, levelStart:40, levelEnd:49 }
 };
 
 // 50-level table imported from table_20260615.csv. baseHP matches the table
@@ -897,7 +897,7 @@ const state = {
   playerHP:100, playerMaxHP:100, opponentHP:100, opponentMaxHP:100, damageDealt:0,
   startTime:0, elapsedAtPause:0, input:{ left:false,right:false,jump:false },
   dashCD:0, attackCD:0, opponentAttackCD:0, defendActive:0, opDefendActive:0,
-  chargeLevel:0, chargeProgress:0, charging:false, aiNextDecision:0, groundY:0,
+  groundY:0,
   combo:0, maxCombo:0, lastHitTime:0, frozen:false, opponentStagger:0, playerStagger:0,
   ambienceTimer:0,
   // ----- Energy / Combo system -----
@@ -908,12 +908,53 @@ const state = {
   // costs (percent of maxEnergy)
   dashEnergyCost:10, downslamEnergyCost:25, specialEnergyCost:10,
   // hold tracking for special attacks
-  attackHoldStart:0, kickHoldStart:0, attackHeld:false, kickHeld:false
+  attackHoldStart:0, kickHoldStart:0, attackHeld:false, kickHeld:false,
+  // ----- AI State Machine -----
+  enemy: {
+    state: 'idle',          // 'idle', 'approach', 'attack', 'defend', 'retreat'
+    comboCount: 0,          // how many hits remaining in current combo chain
+    comboTimer: 0,          // time before next combo hit
+    isCombing: false,       // currently in a combo
+    actionTimer: 0,         // time until next AI decision
+    attackCooldown: 0,      // cooldown after attack
+    defendCooldown: 0       // cooldown after defend
+  }
 };
 
 const PHYS = {
   WALK_ACC: 18, MAX_WALK: 4.125, GROUND_FRICTION: 14, AIR_DRAG: 2.5, JUMP_VEL: 6.15, GRAVITY: 18,
   DASH_VEL: 24.375, DASH_DUR: 0.18, DASH_CD: 0.7, ATTACK_RANGE: 1.7, ATTACK_CD: 0.20
+};
+
+// ===== PRE-CREATED SHARED GEOMETRIES (reuse via .clone() for performance) =====
+const SHARED_GEOS = {
+  cyl16: new THREE.CylinderGeometry(0.28, 0.26, 0.7, 16, 1),
+  cyl8_waist: new THREE.CylinderGeometry(0.24, 0.22, 0.32, 8),
+  cyl11arm: new THREE.CylinderGeometry(0.11, 0.07, 0.62, 8),
+  cyl095leg: new THREE.CylinderGeometry(0.095, 0.08, 0.58, 8),
+  sphere22: new THREE.SphereGeometry(0.22, 24, 24),
+  sphere12: new THREE.SphereGeometry(0.12, 16, 16),
+  sphere065: new THREE.SphereGeometry(0.065, 8, 8),
+  box_foot: new THREE.BoxGeometry(0.14, 0.08, 0.26),
+  torusGeo_head: new THREE.TorusGeometry(0.205, 0.025, 8, 24),
+  // Opponent weapon geometries
+  opSwordBlade: new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8),
+  opSwordGuard: new THREE.BoxGeometry(0.14, 0.025, 0.025),
+  opAxeHead: new THREE.BoxGeometry(0.18, 0.1, 0.55),
+  opAxeShaft: new THREE.CylinderGeometry(0.018, 0.022, 0.7, 8),
+  opLanceShaft: new THREE.CylinderGeometry(0.014, 0.014, 0.95, 8),
+  opLanceTip: new THREE.ConeGeometry(0.025, 0.28, 10),
+  opHammerHead: new THREE.BoxGeometry(0.22, 0.22, 0.28),
+  opHammerHandle: new THREE.CylinderGeometry(0.022, 0.026, 0.78, 8),
+  opReaperBlade: new THREE.CylinderGeometry(0.028, 0.06, 1.0, 8),
+  opReaperHandle: new THREE.CylinderGeometry(0.018, 0.024, 0.7, 8),
+  // Projectile geometries (for each weapon type)
+  projBeamCutter: new THREE.CylinderGeometry(0.05, 0.05, 1.5, 8, 1),
+  projPulseCannon: new THREE.CylinderGeometry(0.08, 0.08, 2.0, 8, 1),
+  projPlasmaInferno: new THREE.CylinderGeometry(0.12, 0.12, 2.5, 8, 1),
+  projCosmicAnnihilator: new THREE.CylinderGeometry(0.15, 0.15, 3.0, 8, 1),
+  projNightmareEdge: new THREE.CylinderGeometry(0.14, 0.14, 2.8, 8, 1),
+  projDefault: new THREE.CylinderGeometry(0.10, 0.10, 2.0, 8, 1)
 };
 
 let scene, camera, renderer, playerFighter, opponentFighter, arenaObjects=[];
@@ -1044,7 +1085,7 @@ class HumanoidFighter {
     character.add(torsoGroup);
 
     const torso = new THREE.Mesh(
-      new THREE.CylinderGeometry(0.28, 0.26, 0.7, 16, 1, false),
+      SHARED_GEOS.cyl16.clone(),
       shirtMat
     );
     torso.castShadow = true;
@@ -1058,35 +1099,35 @@ class HumanoidFighter {
     torsoGroup.add(frontStripe);
 
     // ---- WAIST ----
-    const waist = new THREE.Mesh(new THREE.CylinderGeometry(0.24, 0.22, 0.32, 8), pantsMat);
+    const waist = new THREE.Mesh(SHARED_GEOS.cyl8_waist.clone(), pantsMat);
     waist.position.y = 0.55;
     waist.castShadow = true;
     character.add(waist);
 
     // ---- HEAD ----
-    const head = new THREE.Mesh(new THREE.SphereGeometry(0.22, 24, 24), skinMat);
+    const head = new THREE.Mesh(SHARED_GEOS.sphere22.clone(), skinMat);
     head.position.y = 1.4;
     head.castShadow = true;
     character.add(head);
 
     // ---- SHOULDERS (direct children of character — matches animator) ----
-    const shoulderL = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), shirtMat);
+    const shoulderL = new THREE.Mesh(SHARED_GEOS.sphere12.clone(), shirtMat);
     shoulderL.position.set(-0.34, 1.14, 0);
     shoulderL.castShadow = true;
     character.add(shoulderL);
 
-    const shoulderR = new THREE.Mesh(new THREE.SphereGeometry(0.12, 16, 16), shirtMat);
+    const shoulderR = new THREE.Mesh(SHARED_GEOS.sphere12.clone(), shirtMat);
     shoulderR.position.set(0.34, 1.14, 0);
     shoulderR.castShadow = true;
     character.add(shoulderR);
 
     const createArm = () => {
       const group = new THREE.Group();
-      const armCyl = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.07, 0.62, 8), shirtMat);
+      const armCyl = new THREE.Mesh(SHARED_GEOS.cyl11arm.clone(), shirtMat);
       armCyl.position.y = -0.31;
       armCyl.castShadow = true;
       group.add(armCyl);
-      const hand = new THREE.Mesh(new THREE.SphereGeometry(0.065, 8, 8), skinMat);
+      const hand = new THREE.Mesh(SHARED_GEOS.sphere065.clone(), skinMat);
       hand.position.set(0, -0.62, 0);
       hand.castShadow = true;
       group.add(hand);
@@ -1102,11 +1143,11 @@ class HumanoidFighter {
     const createLeg = (xOffset) => {
       const group = new THREE.Group();
       group.position.set(xOffset, 0.39, 0);
-      const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.095, 0.08, 0.58, 8), pantsMat);
+      const thigh = new THREE.Mesh(SHARED_GEOS.cyl095leg.clone(), pantsMat);
       thigh.position.y = -0.29;
       thigh.castShadow = true;
       group.add(thigh);
-      const foot = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.26), bootsMat);
+      const foot = new THREE.Mesh(SHARED_GEOS.box_foot.clone(), bootsMat);
       foot.position.set(0, -0.58, 0.07);
       foot.castShadow = true;
       group.add(foot);
@@ -1417,41 +1458,41 @@ class HumanoidFighter {
 
       if (style === 'sword') {
         // Tapered laser blade with a small guard.
-        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8), mkMat(3.0));
+        const blade = new THREE.Mesh(SHARED_GEOS.opSwordBlade.clone(), mkMat(3.0));
         blade.rotation.x = Math.PI / 2;
         blade.position.z = 0.42;
         opWeaponGroup.add(blade);
-        const guard = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.025, 0.025), mkMat(2.0));
+        const guard = new THREE.Mesh(SHARED_GEOS.opSwordGuard.clone(), mkMat(2.0));
         guard.position.set(0, -0.05, 0.03);
         opWeaponGroup.add(guard);
       }
       else if (style === 'axe') {
         // Wide, flat axe head on a short shaft.
-        const head = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.1, 0.55), mkMat(3.2));
+        const head = new THREE.Mesh(SHARED_GEOS.opAxeHead.clone(), mkMat(3.2));
         head.position.z = 0.55;
         opWeaponGroup.add(head);
-        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.022, 0.7, 8), mkMat(1.8));
+        const shaft = new THREE.Mesh(SHARED_GEOS.opAxeShaft.clone(), mkMat(1.8));
         shaft.rotation.x = Math.PI / 2;
         shaft.position.z = 0.3;
         opWeaponGroup.add(shaft);
       }
       else if (style === 'lance') {
         // Long thin shaft with a cone tip — classic spear silhouette.
-        const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.014, 0.014, 0.95, 8), mkMat(2.5));
+        const shaft = new THREE.Mesh(SHARED_GEOS.opLanceShaft.clone(), mkMat(2.5));
         shaft.rotation.x = Math.PI / 2;
         shaft.position.z = 0.45;
         opWeaponGroup.add(shaft);
-        const tip = new THREE.Mesh(new THREE.ConeGeometry(0.025, 0.28, 10), mkMat(3.5));
+        const tip = new THREE.Mesh(SHARED_GEOS.opLanceTip.clone(), mkMat(3.5));
         tip.rotation.x = Math.PI / 2;
         tip.position.z = 0.96;
         opWeaponGroup.add(tip);
       }
       else if (style === 'hammer') {
         // Big rectangular hammer head on a thick handle — reads as 'defender'.
-        const headMesh = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.22, 0.28), mkMat(2.6));
+        const headMesh = new THREE.Mesh(SHARED_GEOS.opHammerHead.clone(), mkMat(2.6));
         headMesh.position.z = 0.7;
         opWeaponGroup.add(headMesh);
-        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.022, 0.026, 0.78, 8), mkMat(1.6));
+        const handle = new THREE.Mesh(SHARED_GEOS.opHammerHandle.clone(), mkMat(1.6));
         handle.rotation.x = Math.PI / 2;
         handle.position.z = 0.36;
         opWeaponGroup.add(handle);
@@ -1459,20 +1500,20 @@ class HumanoidFighter {
       else if (style === 'reaper') {
         // Scythe / reaper — elongated blade plus a long curved-feeling handle.
         // Reserved for the 'legend' archetype: deliberately oversized + extra glow.
-        const bladePart = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.06, 1.0, 8), mkMat(3.8));
+        const bladePart = new THREE.Mesh(SHARED_GEOS.opReaperBlade.clone(), mkMat(3.8));
         bladePart.rotation.x = Math.PI / 2;
         bladePart.rotation.z = 0.25; // slight tilt for menace
         bladePart.scale.z = 1.3;
         bladePart.position.set(0.05, 0.02, 0.55);
         opWeaponGroup.add(bladePart);
-        const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.024, 0.7, 8), mkMat(2.0));
+        const handle = new THREE.Mesh(SHARED_GEOS.opReaperHandle.clone(), mkMat(2.0));
         handle.rotation.x = Math.PI / 2;
         handle.position.z = 0.2;
         opWeaponGroup.add(handle);
       }
       else {
         // Fallback — original blade design, preserves any unknown style key.
-        const blade = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.035, 0.85, 8), mkMat(3.0));
+        const blade = new THREE.Mesh(SHARED_GEOS.opSwordBlade.clone(), mkMat(3.0));
         blade.rotation.x = Math.PI / 2;
         blade.position.z = 0.42;
         opWeaponGroup.add(blade);
@@ -1511,7 +1552,7 @@ class HumanoidFighter {
       // Small emissive band around the head — cheap way to make each enemy
       // read as a distinct character without changing the head silhouette.
       const visor = new THREE.Mesh(
-        new THREE.TorusGeometry(0.205, 0.025, 8, 24),
+        SHARED_GEOS.torusGeo_head.clone(),
         new THREE.MeshStandardMaterial({
           color: stripeColor, emissive: stripeColor,
           emissiveIntensity: 1.4 * eBoost, metalness: 0.6, roughness: 0.2
@@ -1805,7 +1846,7 @@ function initThree(){
 
   renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:false, powerPreference:'high-performance' });
   renderer.setSize(window.innerWidth, window.innerHeight);
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setPixelRatio(1);
   renderer.setClearColor(0x020208, 1);
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -1815,8 +1856,8 @@ function initThree(){
   const key = new THREE.DirectionalLight(0xfff5e6, 3.0);
   key.position.set(5, 12, 6);
   key.castShadow = true;
-  key.shadow.mapSize.width = 2048;
-  key.shadow.mapSize.height = 2048;
+  key.shadow.mapSize.width = 1024;
+  key.shadow.mapSize.height = 1024;
   scene.add(key);
 
   const fill = new THREE.DirectionalLight(0x00d9ff, 1.5);
@@ -1954,16 +1995,20 @@ function buildArena(){
   const arenaName = LEVELS[levelIdx].name;
 
   if (arenaName === 'GRID RECON'){
-    // Level 0: Cyan wireframe data grid
-    for (let i = 0; i < 12; i++){
-      const pillar = new THREE.Mesh(
-        new THREE.BoxGeometry(0.4, 4.0, 0.4),
-        new THREE.MeshBasicMaterial({ color: 0x1e90ff, wireframe: true })
-      );
-      pillar.position.set((Math.random() - 0.5) * 16, 2.0, -2.5 - Math.random() * 3);
-      scene.add(pillar);
-      arenaObjects.push(pillar);
+    // Level 0: Cyan wireframe data grid - use instancing for 12 identical pillars
+    const pillarGeo = new THREE.BoxGeometry(0.4, 4.0, 0.4);
+    const pillarMat = new THREE.MeshBasicMaterial({ color: 0x1e90ff, wireframe: true });
+    const count = 12;
+    const instanced = new THREE.InstancedMesh(pillarGeo, pillarMat, count);
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < count; i++) {
+      dummy.position.set((Math.random() - 0.5) * 16, 2.0, -2.5 - Math.random() * 3);
+      dummy.updateMatrix();
+      instanced.setMatrixAt(i, dummy.matrix);
     }
+    instanced.instanceMatrix.needsUpdate = true;
+    scene.add(instanced);
+    arenaObjects.push(instanced);
   } else if (arenaName === 'IRON FORGE'){
     // Level 1: Heavy structural beams
     for (let i = 0; i < 6; i++){
@@ -2237,6 +2282,8 @@ function updateHUD(){
   DOM.opponentHPBar.style.width = (pctO * 100) + '%';
   updateWeaponModeBadge();
 }
+let lastComboValue = 0; // Track last combo value to reduce DOM updates
+
 function updateEnergyUI(){
   const bar = DOM.energyBar;
   const info = DOM.energyInfo;
@@ -2253,7 +2300,9 @@ function updateEnergyUI(){
     bar.style.background = 'linear-gradient(to right,#00ffd9,#ff3aa8)';
   }
   if (info) info.textContent = Math.ceil(pct) + '%';
-  if (combo){
+  // Only update combo DOM if value changed (throttles unnecessary reflows)
+  if (combo && state.combo !== lastComboValue){
+    lastComboValue = state.combo;
     if (state.combo > 1){
       const mult = Math.pow(state.comboMul, state.combo - 1);
       combo.textContent = `COMBO ×${state.combo}  (${mult.toFixed(2)}× DMG)`;
@@ -2316,23 +2365,47 @@ function getEnemyMultiplier(){ return 1; }
 function getEnemySpeedMultiplier(){ return 1; }
 function getEnemyDefenseMultiplier(){ return 1; }
 
-function enemyAttack(){
+function enemyAttack(isComboHit = false) {
   if (state.opponentAttackCD > 0 || state.opponentStagger > 0) return;
   const dist = Math.abs(playerFighter.x - opponentFighter.x);
   if (dist > PHYS.ATTACK_RANGE + 0.3) return;
-  // Alternate between punch and kick for visual variety
-  opponentFighter.setAnim(Math.random() < 0.65 ? 'attack' : 'kick');
+  
+  const enemy = state.enemy;
+  const diff = DIFFICULTIES[state.difficulty];
+  
+  // Determine combo on initial attack only (not on continuation)
+  if (!isComboHit && enemy.comboCount === 0) {
+    const comboChance = diff.comboChance * (0.5 + Math.random()); // add some randomness
+    if (Math.random() < comboChance) {
+      enemy.isCombing = true;
+      enemy.comboCount = 1 + Math.floor(Math.random() * 2); // 1-3 additional hits
+      enemy.comboTimer = 0;
+    }
+  }
+  
+  // Choose attack type: kick is 30% chance at longer range
+  const useKick = (dist > PHYS.ATTACK_RANGE * 0.6) && Math.random() < 0.3;
+  opponentFighter.setAnim(useKick ? 'kick' : 'attack');
   state.opponentAttackCD = PHYS.ATTACK_CD * (1 / getEnemySpeedMultiplier()) * (1 / 1.5);
+  
+  // Set cooldown for next attack in combo
+  if (isComboHit && enemy.comboCount > 0) {
+    enemy.comboTimer = 0.25 + Math.random() * 0.2;
+  }
+  
   setTimeout(() => {
     if (!state.active) return;
     if (Math.abs(playerFighter.x - opponentFighter.x) > PHYS.ATTACK_RANGE + 0.5) return;
-    const diff = DIFFICULTIES[state.difficulty];
+    
     let dmg = (6 + Math.random() * 5) * diff.aiDmg * 2.25;
     const defMult = getEnemyDefenseMultiplier();
-    if (state.defendActive > 0){
+    if (state.defendActive > 0) {
       dmg *= (0.35 / defMult);
       addLog(`Blocked strike! -${Math.ceil(dmg)} STRUCTURAL`, 'block');
       sfx.block();
+      // Successful block resets enemy combo
+      enemy.isCombing = false;
+      enemy.comboCount = 0;
     } else {
       dmg *= getPlayerDamageReduction();
       addLog(`Direct hit taken! -${Math.ceil(dmg)} STRUCTURAL`, 'hit');
@@ -2340,13 +2413,23 @@ function enemyAttack(){
       playerFighter.hitFlash = 0.2;
       screenShake();
       sfx.hit();
-      // Getting hit breaks the combo chain
-      if (state.combo > 0){
+      
+      // Getting hit breaks the player combo chain
+      if (state.combo > 0) {
         addLog(`Combo broken! ×${state.combo} chain lost`, 'info');
         state.combo = 0;
         updateEnergyUI();
       }
+      
+      // Continue or finish enemy combo
+      if (isComboHit && enemy.comboCount > 0) {
+        enemy.comboCount--;
+        if (enemy.comboCount <= 0) {
+          enemy.isCombing = false;
+        }
+      }
     }
+    
     state.playerHP = Math.max(0, state.playerHP - dmg);
     updateHUD();
     if (state.playerHP <= 0) endMatch(false);
@@ -2405,8 +2488,15 @@ class Projectile {
     // Get laser dimensions based on weapon
     const laserDims = getLaserDimensions(weaponKey);
     
-    // Create laser beam using CylinderGeometry (cylinder oriented along Y, will rotate to X)
-    const geo = new THREE.CylinderGeometry(laserDims.radius, laserDims.radius, laserDims.length, 8, 1);
+    // Create laser beam using shared geometry pool, cloned for this projectile
+    const geoKey = {
+      'beam_cutter': 'projBeamCutter',
+      'pulse_cannon': 'projPulseCannon',
+      'plasma_inferno': 'projPlasmaInferno',
+      'cosmic_annihilator': 'projCosmicAnnihilator',
+      'nightmare_edge': 'projNightmareEdge'
+    }[weaponKey] || 'projDefault';
+    
     const mat = new THREE.MeshStandardMaterial({
       color: color,
       emissive: color,
@@ -2414,7 +2504,7 @@ class Projectile {
       metalness: 0.9,
       roughness: 0.1
     });
-    this.mesh = new THREE.Mesh(geo, mat);
+    this.mesh = new THREE.Mesh(SHARED_GEOS[geoKey].clone(), mat);
     
     // Rotate laser to point along X-axis (direction of travel)
     // Cylinder is naturally oriented on Y-axis, rotate 90 degrees on Z-axis
@@ -2458,6 +2548,9 @@ function fireProjectile(weaponKey, owner) {
   const weapon = GEAR[weaponKey];
   if (!weapon || !weapon.ranged) return;
   
+  // Cap projectiles to 12 (prevent spam/memory leaks)
+  if (projectiles.length >= 12) return;
+  
   const fighter = owner === 'player' ? playerFighter : opponentFighter;
   const direction = fighter.facing || 1;
   
@@ -2483,6 +2576,9 @@ function fireProjectile(weaponKey, owner) {
 function fireHybridProjectile(weaponKey, owner) {
   const weapon = GEAR[weaponKey];
   if (!weapon || !weapon.hybrid) return;
+  
+  // Cap projectiles to 12 (prevent spam/memory leaks)
+  if (projectiles.length >= 12) return;
   
   const fighter = owner === 'player' ? playerFighter : opponentFighter;
   const direction = fighter.facing || 1;
@@ -2549,14 +2645,6 @@ function doPlayerAttack(){
     if (isDashAttack){
       dmg *= 1.5;
       critTag = 'DASH STRIKE';
-    }
-    if (state.chargeLevel > 0){
-      dmg *= (1 + state.chargeLevel * 0.5);
-      addLog(`CRITICAL IMPACT MULTIPLIER! -${Math.ceil(dmg)}`, 'crit');
-      sfx.crit();
-      state.chargeLevel = 0;
-      state.chargeProgress = 0;
-      state.charging = false;
     }
     if (state.opDefendActive > 0){
       dmg *= 0.35;
@@ -2782,33 +2870,117 @@ function doPlayerDash(){
   if (playerFighter.dash()){
     state.energy -= cost;
     state.dashCD = PHYS.DASH_CD;
-    state.charging = false;
-    state.chargeLevel = 0;
-    state.chargeProgress = 0;
     sfx.dash();
     updateEnergyUI();
   }
 }
 
-function aiTick(dt){
-  state.aiNextDecision -= dt;
-  if (state.aiNextDecision > 0) return;
+function aiTick(dt) {
+  const enemy = state.enemy;
   const diff = DIFFICULTIES[state.difficulty];
-  const speedMult = getEnemySpeedMultiplier();
-  state.aiNextDecision = (diff.aiReact / speedMult) * (0.7 + Math.random() * 0.6);
-  const dist = playerFighter.x - opponentFighter.x;
-  const absDist = Math.abs(dist);
-  const sign = Math.sign(dist) || 1;
-  opponentFighter.walkInput = 0;
-
-  if (absDist > PHYS.ATTACK_RANGE + 0.2){
-    opponentFighter.walkInput = sign > 0 ? 1 : -1;
-  } else {
-    const r = Math.random();
-    const aggression = ENEMY_TYPES[state.enemyType].aggression;
-    if (playerFighter.anim === 'attack' && r < 0.5) enemyDefend();
-    else if (r < (0.6 * aggression)) enemyAttack();
+  
+  // Decrease action timer
+  enemy.actionTimer -= dt;
+  
+  // Handle combo timing
+  if (enemy.isCombing && enemy.comboTimer > 0) {
+    enemy.comboTimer -= dt;
+    if (enemy.comboTimer <= 0 && enemy.comboCount > 0) {
+      // Trigger next attack in combo
+      if (enemy.attackCooldown <= 0) {
+        enemyAttack(true); // pass flag indicating this is a combo continuation
+      }
+    }
   }
+  
+  // Skip decision making if timer hasn't expired
+  if (enemy.actionTimer > 0) {
+    // Decrease cooldowns outside decision loop
+    enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
+    enemy.defendCooldown = Math.max(0, enemy.defendCooldown - dt);
+    return;
+  }
+  
+  // Time for a new decision
+  const baseInterval = 0.6 + Math.random() * 0.5;
+  enemy.actionTimer = baseInterval * diff.reactionSpeed;
+  
+  const dist = Math.abs(playerFighter.x - opponentFighter.x);
+  const playerAttacking = (playerFighter.anim === 'attack' || playerFighter.anim === 'kick');
+  const playerDefending = (playerFighter.anim === 'defend');
+  const playerHurt = (playerFighter.anim === 'hurt');
+  
+  // ---- Health-based adaptation ----
+  const hpRatio = opponentFighter.hp / opponentFighter.maxHp;
+  const enemyAggression = ENEMY_TYPES[state.enemyType].aggression;
+  const aggressionBase = enemyAggression * diff.aggression;
+  const defendBias = hpRatio < 0.3 ? 0.7 : 0.4; // More defensive when low HP
+  
+  // ---- Decision tree ----
+  let decision = 'idle';
+  
+  // 1. If player is hurt or stunned, punish immediately
+  if (playerHurt && dist < PHYS.ATTACK_RANGE + 0.5) {
+    decision = 'attack';
+  }
+  // 2. If player is attacking and we are close, defend (with chance to counter)
+  else if (playerAttacking && dist < PHYS.ATTACK_RANGE + 0.2) {
+    const defendChance = 0.6 + (1 - hpRatio) * 0.2;
+    if (Math.random() < defendChance) {
+      decision = 'defend';
+    } else {
+      decision = 'attack'; // risky counter
+    }
+  }
+  // 3. If player is defending, break guard (attack more)
+  else if (playerDefending && dist < PHYS.ATTACK_RANGE + 0.5) {
+    decision = 'attack';
+  }
+  // 4. Far away: approach
+  else if (dist > PHYS.ATTACK_RANGE + 0.3) {
+    decision = 'approach';
+  }
+  // 5. In range: decide based on aggression
+  else {
+    const r = Math.random();
+    const attackChance = 0.45 + 0.25 * aggressionBase;
+    if (r < attackChance) {
+      decision = 'attack';
+    } else if (r < attackChance + 0.25 * defendBias) {
+      decision = 'defend';
+    } else {
+      decision = 'idle';
+    }
+  }
+  
+  // ---- Execute decision ----
+  opponentFighter.walkInput = 0;
+  
+  switch (decision) {
+    case 'approach':
+      const dir = Math.sign(playerFighter.x - opponentFighter.x) || 1;
+      opponentFighter.walkInput = dir;
+      break;
+    case 'attack':
+      if (enemy.attackCooldown <= 0 && state.opponentAttackCD <= 0) {
+        enemyAttack(false);
+      }
+      break;
+    case 'defend':
+      if (enemy.defendCooldown <= 0 && state.opDefendActive <= 0) {
+        enemyDefend();
+        enemy.defendCooldown = 1.0;
+      }
+      break;
+    case 'idle':
+      // Small step back occasionally
+      opponentFighter.walkInput = -Math.sign(playerFighter.x - opponentFighter.x) * 0.2;
+      break;
+  }
+  
+  // Decrease cooldowns
+  enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
+  enemy.defendCooldown = Math.max(0, enemy.defendCooldown - dt);
 }
 
 function tick(dt){
@@ -2825,13 +2997,6 @@ function tick(dt){
   if (state.opponentAttackCD > 0) state.opponentAttackCD = Math.max(0, state.opponentAttackCD - dt);
   if (state.defendActive > 0) state.defendActive = Math.max(0, state.defendActive - dt);
   if (state.opDefendActive > 0) state.opDefendActive = Math.max(0, state.opDefendActive - dt);
-  if (state.charging){
-    state.chargeProgress += dt * 1.6;
-    while (state.chargeProgress >= 1 && state.chargeLevel < 3){
-      state.chargeLevel++;
-      state.chargeProgress = 0;
-    }
-  }
 
   // ----- Energy refill -----
   // Base refill: full 100% over `energyRefillBaseTime` seconds.
@@ -2942,9 +3107,6 @@ function startMatch(idx){
   state.paused = false;
   state.startTime = performance.now();
   state.elapsedAtPause = 0;
-  state.chargeLevel = 0;
-  state.chargeProgress = 0;
-  state.charging = false;
   // Reset combo + energy at the start of every match
   state.combo = 0;
   state.maxCombo = 0;
@@ -3636,12 +3798,12 @@ function initParticleCanvas() {
   canvas.height = window.innerHeight;
 
   const LINE_COLORS = ['#00ffff', '#ff00ff', '#4f46e5', '#06b6d4', '#00ff88', '#ffaa00'];
-  const LINE_COUNT = 18;
-  const REFRESH_MS = 10000; // 10-second refresh cycle
+  const LINE_COUNT = 10;
+  const REFRESH_MS = 15000; // 15-second refresh cycle (reduced from 10s)
 
   // ── Floating dot particles ──────────────────────────────────────────────
   const particles = [];
-  const particleCount = 50;
+  const particleCount = 30;
   for (let i = 0; i < particleCount; i++) {
     particles.push({
       x: Math.random() * canvas.width,
