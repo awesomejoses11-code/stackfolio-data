@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>StackFolio Clipboard & Document Studio Pro</title>
+  
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <!-- DOCX library (handles all the packaging) -->
+  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+    
+    :root {
+      --gold: #FFD700;
+      --gold-dark: #B8860B;
+      --deep-blue: #050814;
+      --card-blue: #0B1126;
+      --border-blue: rgba(255, 215, 0, 0.1);
+    }
+
+    body.light-mode {
+      --deep-blue: #F5F7FA;
+      --card-blue: #FFFFFF;
+      --border-blue: rgba(100, 116, 139, 0.2);
+      background-color: var(--deep-blue);
+      color: #334155;
+    }
+
+    body.light-mode .glass {
+      background: #FFFFFF;
+      border: 1px solid rgba(100, 116, 139, 0.15);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    }
+
+    body.light-mode .glass:hover {
+      border-color: rgba(100, 116, 139, 0.25);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    body.light-mode textarea,
+    body.light-mode input {
+      background: #FFFFFF;
+      color: #1E293B;
+      border-color: rgba(100, 116, 139, 0.2);
+    }
+
+    body.light-mode textarea:focus,
+    body.light-mode input:focus {
+      border-color: #D97706;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.1);
+    }
+
+    body.light-mode textarea::placeholder {
+      color: #94A3B8;
+    }
+
+    body.light-mode .btn-gold {
+      box-shadow: 0 2px 8px rgba(217, 119, 6, 0.15);
+    }
+
+    body.light-mode .btn-gold:hover:not(:disabled) {
+      box-shadow: 0 4px 12px rgba(217, 119, 6, 0.25);
+    }
+
+    body.light-mode button:not(.btn-gold) {
+      background: #F1F5F9;
+      color: #1E293B;
+      border-color: rgba(100, 116, 139, 0.15);
+    }
+
+    body.light-mode button:not(.btn-gold):hover {
+      background: #E2E8F0;
+      border-color: rgba(100, 116, 139, 0.25);
+    }
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: var(--deep-blue);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(0, 210, 255, 0.04) 0%, transparent 40%);
+      color: #F8FAFC;
+      transition: background-color 0.3s ease;
+    }
+
+    body.light-mode {
+      background-image: none;
+    }
+
+    .glass {
+      background: rgba(11, 17, 38, 0.80);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-blue);
+      transition: all 0.3s ease;
+    }
+
+    .btn-gold {
+      background: linear-gradient(135deg, #FFD700 0%, #FDB931 100%);
+      color: #050814;
+      font-weight: 800;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    }
+
+    .btn-gold:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 25px rgba(255, 215, 0, 0.35);
+      filter: brightness(1.05);
+    }
+
+    .btn-gold:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .premium-logo-glow {
+      position: relative;
+    }
+    .premium-logo-glow::after {
+      content: '';
+      position: absolute;
+      inset: -2px;
+      background: linear-gradient(135deg, #FFD700, #00D2FF);
+      border-radius: 12px;
+      z-index: -1;
+      opacity: 0.4;
+      filter: blur(8px);
+      animation: pulseGlow 3s ease-in-out infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      0% { opacity: 0.3; filter: blur(6px); }
+      100% { opacity: 0.6; filter: blur(10px); }
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .spinner {
+      animation: spin 1s linear infinite;
+    }
+
+    textarea::-webkit-scrollbar {
+      width: 8px;
+    }
+    textarea::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.2);
+    }
+    textarea::-webkit-scrollbar-thumb {
+      background: rgba(255, 215, 0, 0.15);
+      border-radius: 4px;
+    }
+    textarea::-webkit-scrollbar-thumb:hover {
+      background: rgba(255, 215, 0, 0.30);
+    }
+
+    .markdown-preview {
+      background: linear-gradient(135deg, rgba(15,23,42,0.8) 0%, rgba(11,17,38,0.8) 100%);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(255,215,0,0.1);
+      overflow-y: auto;
+      max-height: 400px;
+      font-size: 14px;
+      line-height: 1.6;
+    }
+
+    body.light-mode .markdown-preview {
+      background: #FFFFFF;
+      color: #334155;
+      border-color: rgba(100, 116, 139, 0.2);
+    }
+
+    .markdown-preview h1, .markdown-preview h2, .markdown-preview h3 {
+      color: #FFD700;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+      font-weight: 700;
+    }
+
+    body.light-mode .markdown-preview h1, 
+    body.light-mode .markdown-preview h2, 
+    body.light-mode .markdown-preview h3 {
+      color: #D97706;
+    }
+
+    .markdown-preview code {
+      background: rgba(0,0,0,0.4);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: #00D2FF;
+      font-family: 'Fira Code';
+      font-size: 12px;
+    }
+
+    body.light-mode .markdown-preview code {
+      background: rgba(0,0,0,0.08);
+      color: #0891B2;
+    }
+
+    .markdown-preview a {
+      color: #00D2FF;
+      text-decoration: underline;
+    }
+
+    body.light-mode .markdown-preview a {
+      color: #0891B2;
+    }
+
+    .markdown-preview pre {
+      background: rgba(0,0,0,0.5);
+      padding: 1rem;
+      border-radius: 0.5rem;
+      overflow-x: auto;
+      margin: 1rem 0;
+    }
+
+    body.light-mode .markdown-preview pre {
+      background: rgba(0,0,0,0.05);
+    }
+
+    .tooltip {
+      position: relative;
+      display: inline-block;
+    }
+
+    .tooltip .tooltiptext {
+      visibility: hidden;
+      width: 120px;
+      background-color: rgba(0,0,0,0.9);
+      color: #FFD700;
+      text-align: center;
+      border-radius: 6px;
+      padding: 5px;
+      position: absolute;
+      z-index: 1;
+      bottom: 125%;
+      left: 50%;
+      margin-left: -60px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+
+    .tooltip:hover .tooltiptext {
+      visibility: visible;
+      opacity: 1;
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .highlight-match {
+      background-color: #FFD700;
+      color: #050814;
+      font-weight: bold;
+    }
+
+    body.light-mode .highlight-match {
+      background-color: #FCD34D;
+      color: #78350F;
+    }
+
+    .encoding-badge {
+      display: inline-block;
+      background: rgba(0,210,255,0.2);
+      color: #00D2FF;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-family: 'Fira Code';
+    }
+
+    body.light-mode .encoding-badge {
+      background: rgba(8,145,178,0.1);
+      color: #0891B2;
+    }
+
+    .file-input-wrapper {
+      position: relative;
+      overflow: hidden;
+      display: inline-block;
+    }
+
+    .file-input-wrapper input[type=file] {
+      position: absolute;
+      left: -9999px;
+    }
+
+    .file-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(79, 172, 254, 0.2);
+      color: #4FACFE;
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.5rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      border: 1px solid rgba(79, 172, 254, 0.3);
+    }
+
+    body.light-mode .file-badge {
+      background: rgba(79, 172, 254, 0.1);
+      border-color: rgba(79, 172, 254, 0.2);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between p-4 md:p-8 dark-mode">
+
+  <div class="max-w-6xl w-full mx-auto space-y-6">
+    
+    <header class="flex justify-between items-center bg-[#0B1126]/60 p-5 rounded-2xl border border-white/5 shadow-xl flex-wrap gap-4 glass">
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#111827] to-[#0B1126] flex items-center justify-center premium-logo-glow border border-yellow-500/30">
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#FFD700" />
+                <stop offset="100%" stop-color="#FDB931" />
+              </linearGradient>
+              <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#00D2FF" />
+                <stop offset="100%" stop-color="#00A8CC" />
+              </linearGradient>
+            </defs>
+            <path d="M16 4H19C20.1046 4 21 4.89543 21 6V20C21 21.1046 20.1046 22 19 22H5C3.89543 22 3 21.1046 3 20V6C3 4.89543 3.89543 4 5 4H8" stroke="url(#goldGrad)" stroke-width="2" stroke-linecap="round"/>
+            <path d="M9 3C9 2.44772 9.44772 2 10 2H14C14.5523 2 15 2.44772 15 3V5C15 5.55228 14.5523 6 14 6H10C9.44772 6 9 5.55228 9 5V3Z" fill="url(#goldGrad)" stroke="url(#goldGrad)" stroke-width="1"/>
+            <path d="M12 9L16 11V15C16 17.5 12 19 12 19C12 19 8 17.5 8 15V11L12 9Z" fill="url(#cyanGrad)" opacity="0.85"/>
+            <path d="M10.5 14L11.5 15L14 12.5" stroke="#050814" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div>
+          <h1 class="text-xs font-black uppercase tracking-[0.2em] text-white/40 light-mode:text-slate-400 leading-none">StackFolio Utilities</h1>
+          <p class="text-sm font-bold text-[#FFD700] mt-1">Clipboard & Document Studio</p>
+        </div>
+      </div>
+      
+      <div class="flex items-center gap-4">
+        <div id="loadedFile" class="file-badge hidden">
+          <i class="fa-solid fa-file-check"></i>
+          <span id="fileName">Document</span>
+        </div>
+        <div class="text-xs font-mono text-slate-400 bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/5 flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Ready
+        </div>
+        <button onclick="toggleDarkMode()" class="tooltip px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg border border-white/10 text-white text-xs transition-all">
+          <i class="fa-solid fa-moon"></i>
+          <span class="tooltiptext">Toggle Theme</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+      
+      <main class="lg:col-span-2 space-y-4">
+        
+        <div class="glass rounded-3xl p-6 shadow-2xl relative overflow-hidden">
+          <div class="absolute top-0 right-0 w-32 h-32 bg-yellow-500/[0.02] rounded-full blur-2xl pointer-events-none"></div>
+          
+          <div class="flex justify-between items-center mb-4">
+            <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-align-left text-yellow-500"></i> Text Canvas
+            </span>
+            <button onclick="openConfirmModal()" class="text-xs text-red-400 hover:text-red-300 transition-colors font-bold flex items-center gap-1 bg-red-500/10 px-2.5 py-1 rounded-lg">
+              <i class="fa-solid fa-eraser"></i> Clear
+            </button>
+          </div>
+
+          <textarea 
+            id="textArea" 
+            class="w-full h-96 bg-black/40 p-5 text-slate-200 border border-white/5 rounded-2xl focus:border-yellow-500/50 focus:ring-1 focus:ring-yellow-500/20 outline-none resize-none font-mono text-sm leading-relaxed mb-4 transition-all"
+            placeholder="Paste configs, write outlines, drop documents, or paste large text here..."
+          ></textarea>
+
+          <div class="flex flex-col sm:flex-row gap-3">
+            <button 
+              onclick="copyToClipboard()" 
+              class="flex-1 btn-gold py-3 px-5 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
+            >
+              <i class="fa-solid fa-copy"></i> Copy
+            </button>
+            
+            <button 
+              onclick="pasteFromClipboard()" 
+              class="flex-1 bg-white/5 hover:bg-white/10 text-white font-bold py-3 px-5 rounded-xl border border-white/10 transition-all text-xs flex items-center justify-center gap-2"
+            >
+              <i class="fa-solid fa-arrow-down-long text-yellow-500"></i> Paste
+            </button>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-file-import text-yellow-500"></i> Upload & Import
+          </span>
+          
+          <div class="space-y-3">
+            <div class="file-input-wrapper">
+              <label class="w-full btn-gold py-3 px-5 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
+                <i class="fa-solid fa-upload"></i> Choose File
+                <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.md,.json" onchange="handleFileUpload(event)">
+              </label>
+            </div>
+            <div class="text-xs text-slate-400 text-center">
+              <span class="text-slate-500">Supports:</span> TXT, PDF, DOCX, MD, JSON
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-wand-magic-sparkles text-yellow-500"></i> Text Tools
+          </span>
+          
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <button onclick="modifyText('upper')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">UPPER</button>
+            <button onclick="modifyText('lower')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">lower</button>
+            <button onclick="modifyText('title')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Title</button>
+            <button onclick="modifyText('reverse')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Reverse</button>
+            <button onclick="modifyText('trim')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Trim</button>
+            <button onclick="modifyText('newlines')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Remove NL</button>
+            <button onclick="modifyText('json')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Format JSON</button>
+            <button onclick="modifyText('minify')" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Minify</button>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-3">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-magnifying-glass text-yellow-500"></i> Find & Replace
+          </span>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+            <input type="text" id="findInput" placeholder="Find..." class="bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-400 focus:border-yellow-500/50 outline-none transition-all">
+            <input type="text" id="replaceInput" placeholder="Replace..." class="bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-400 focus:border-yellow-500/50 outline-none transition-all">
+          </div>
+          <div class="flex gap-3">
+            <button onclick="findText()" class="flex-1 bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all">Find All</button>
+            <button onclick="replaceText()" class="flex-1 bg-yellow-500/20 hover:bg-yellow-500/30 border border-yellow-500/20 text-xs p-2.5 rounded-xl text-yellow-300 font-bold transition-all">Replace All</button>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-download text-yellow-500"></i> Export
+          </span>
+          <div class="space-y-4">
+            <div>
+              <label class="text-xs text-slate-400 font-bold mb-2 block">Filename</label>
+              <input type="text" id="exportFilename" placeholder="stackfolio_export" class="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-slate-200 placeholder-slate-400 focus:border-yellow-500/50 outline-none transition-all">
+            </div>
+            <div>
+              <label class="text-xs text-slate-400 font-bold mb-2 block">Encoding (Text)</label>
+              <select id="encodingSelect" class="w-full bg-black/40 border border-white/5 rounded-xl p-3 text-sm text-slate-200 focus:border-yellow-500/50 outline-none transition-all">
+                <option value="utf-8">UTF-8</option>
+                <option value="utf-16">UTF-16</option>
+                <option value="ascii">ASCII</option>
+              </select>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+              <button onclick="exportToTXT()" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-3 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-lines"></i> TXT
+              </button>
+              <button onclick="exportToPDF()" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-3 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-pdf"></i> PDF
+              </button>
+              <button onclick="exportToDocx()" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-3 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-word"></i> DOCX
+              </button>
+              <button onclick="exportToJSON()" class="bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-3 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+                <i class="fa-solid fa-code"></i> JSON
+              </button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      <aside class="space-y-4">
+        
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-chart-simple text-yellow-500"></i> Statistics
+          </span>
+          <div class="space-y-3 text-xs">
+            <div class="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5">
+              <span class="text-slate-400">Characters</span>
+              <span class="font-bold text-yellow-400" id="charCount">0</span>
+            </div>
+            <div class="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5">
+              <span class="text-slate-400">Words</span>
+              <span class="font-bold text-yellow-400" id="wordCount">0</span>
+            </div>
+            <div class="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5">
+              <span class="text-slate-400">Lines</span>
+              <span class="font-bold text-yellow-400" id="lineCount">0</span>
+            </div>
+            <div class="flex justify-between items-center bg-black/40 p-3 rounded-lg border border-white/5">
+              <span class="text-slate-400">Save Status</span>
+              <span class="font-bold text-emerald-400" id="saveStatus">Ready</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="glass rounded-3xl p-6 shadow-2xl space-y-4">
+          <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-keyboard text-yellow-500"></i> Actions
+          </span>
+          <div class="space-y-2 flex flex-col">
+            <button onclick="undoAction()" class="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-undo"></i> Undo
+            </button>
+            <button onclick="redoAction()" class="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-redo"></i> Redo
+            </button>
+            <button onclick="toggleMarkdownPreview()" class="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-eye"></i> Preview
+            </button>
+            <button onclick="openShortcutsModal()" class="w-full bg-white/5 hover:bg-white/10 border border-white/5 text-xs p-2.5 rounded-xl text-slate-300 font-bold transition-all flex items-center justify-center gap-2">
+              <i class="fa-solid fa-keyboard"></i> Shortcuts
+            </button>
+          </div>
+        </div>
+      </aside>
+    </div>
+
+    <div id="markdownPreviewContainer" class="hidden glass rounded-3xl p-6">
+      <div class="flex justify-between items-center mb-4">
+        <span class="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+          <i class="fa-solid fa-eye text-yellow-500"></i> Markdown Preview
+        </span>
+        <button onclick="toggleMarkdownPreview()" class="text-xs text-slate-400 hover:text-white">Close</button>
+      </div>
+      <div id="markdownPreview" class="markdown-preview"></div>
+    </div>
+  </div>
+
+  <!-- Clear Canvas Modal -->
+  <div id="confirmModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="glass rounded-3xl p-6 max-w-sm mx-4 border border-yellow-500/20">
+      <div class="flex items-center gap-3 mb-4">
+        <i class="fa-solid fa-triangle-exclamation text-yellow-500 text-xl"></i>
+        <h2 class="text-lg font-bold">Clear Canvas?</h2>
+      </div>
+      <p class="text-sm text-slate-300 mb-6">This action cannot be undone. All text will be removed.</p>
+      <div class="flex gap-3">
+        <button onclick="closeConfirmModal()" class="flex-1 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold py-2.5 px-4 rounded-xl transition-all text-xs">Cancel</button>
+        <button onclick="executeClearCanvas()" class="flex-1 btn-gold py-2.5 px-4 rounded-xl transition-all text-xs">Clear</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shortcuts Modal -->
+  <div id="shortcutsModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center opacity-0 pointer-events-none transition-opacity duration-200">
+    <div class="glass rounded-3xl p-6 max-w-md mx-4 border border-yellow-500/20 max-h-[80vh] overflow-y-auto">
+      <div class="flex justify-between items-center mb-4">
+        <h2 class="text-lg font-bold">Keyboard Shortcuts</h2>
+        <button onclick="closeShortcutsModal()" class="text-slate-400 hover:text-white text-xl">&times;</button>
+      </div>
+      <div class="space-y-3 text-xs">
+        <div><span class="font-bold text-yellow-400">Ctrl+C</span> - Copy</div>
+        <div><span class="font-bold text-yellow-400">Ctrl+V</span> - Paste</div>
+        <div><span class="font-bold text-yellow-400">Ctrl+Z</span> - Undo</div>
+        <div><span class="font-bold text-yellow-400">Ctrl+Shift+Z</span> - Redo</div>
+        <div><span class="font-bold text-yellow-400">Ctrl+H</span> - Find & Replace</div>
+        <div><span class="font-bold text-yellow-400">Ctrl+K</span> - Toggle Dark Mode</div>
+        <div><span class="font-bold text-yellow-400">Ctrl+L</span> - Clear Canvas</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div id="msgToast" class="fixed bottom-8 left-1/2 transform -translate-x-1/2 glass rounded-2xl px-6 py-4 shadow-2xl flex items-center gap-3 translate-y-20 opacity-0 transition-all duration-300 border border-yellow-500/20 z-40">
+    <i id="toast-icon" class="fa-solid fa-circle-check text-yellow-400 text-xl"></i>
+    <span id="toast-text" class="text-sm font-bold text-white">Operation complete</span>
+  </div>
+
+  <script>
+    const CONFIG = {
+      STORAGE_KEY: 'stackfolio_draft',
+      AUTO_SAVE_INTERVAL: 10000,
+      TOAST_DURATION_MS: 3000
+    };
+
+    const elements = {
+      textArea: document.getElementById('textArea'),
+      charCount: document.getElementById('charCount'),
+      wordCount: document.getElementById('wordCount'),
+      lineCount: document.getElementById('lineCount'),
+      saveStatus: document.getElementById('saveStatus'),
+      msgToast: document.getElementById('msgToast'),
+      confirmModal: document.getElementById('confirmModal'),
+      shortcutsModal: document.getElementById('shortcutsModal'),
+      findInput: document.getElementById('findInput'),
+      replaceInput: document.getElementById('replaceInput'),
+      exportFilename: document.getElementById('exportFilename'),
+      encodingSelect: document.getElementById('encodingSelect'),
+      markdownPreviewContainer: document.getElementById('markdownPreviewContainer'),
+      markdownPreview: document.getElementById('markdownPreview'),
+      fileInput: document.getElementById('fileInput'),
+      loadedFile: document.getElementById('loadedFile'),
+      fileName: document.getElementById('fileName')
+    };
+
+    const state = {
+      history: [''],
+      historyIndex: 0,
+      lastSave: Date.now(),
+      toastTimeout: null,
+      currentFileName: null
+    };
+
+    function init() {
+      loadDraft();
+      runStatisticsCalculation();
+      
+      elements.textArea.addEventListener('input', () => {
+        runStatisticsCalculation();
+        autoSave();
+        updateHistory();
+      });
+
+      window.addEventListener('beforeunload', saveDraftOnExit);
+      window.addEventListener('keydown', handleKeyboardShortcuts);
+    }
+
+    function handleKeyboardShortcuts(e) {
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key === 'z' && !e.shiftKey) {
+          e.preventDefault();
+          undoAction();
+        } else if ((e.key === 'z' && e.shiftKey) || e.key === 'y') {
+          e.preventDefault();
+          redoAction();
+        } else if (e.key === 'h') {
+          e.preventDefault();
+          elements.findInput.focus();
+        } else if (e.key === 'k') {
+          e.preventDefault();
+          toggleDarkMode();
+        } else if (e.key === 'l') {
+          e.preventDefault();
+          openConfirmModal();
+        }
+      }
+    }
+
+    function toggleDarkMode() {
+      document.body.classList.toggle('light-mode');
+      document.body.classList.toggle('dark-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    }
+
+    function updateHistory() {
+      state.history = state.history.slice(0, state.historyIndex + 1);
+      state.history.push(elements.textArea.value);
+      state.historyIndex = state.history.length - 1;
+    }
+
+    function undoAction() {
+      if (state.historyIndex > 0) {
+        state.historyIndex--;
+        elements.textArea.value = state.history[state.historyIndex];
+        runStatisticsCalculation();
+        showToast('Undo', 'undo');
+      }
+    }
+
+    function redoAction() {
+      if (state.historyIndex < state.history.length - 1) {
+        state.historyIndex++;
+        elements.textArea.value = state.history[state.historyIndex];
+        runStatisticsCalculation();
+        showToast('Redo', 'redo');
+      }
+    }
+
+    function copyToClipboard() {
+      const text = elements.textArea.value;
+      if (!text) {
+        showToast('Canvas is empty', 'exclamation');
+        return;
+      }
+      navigator.clipboard.writeText(text).then(() => {
+        showToast('Copied to clipboard', 'check');
+      });
+    }
+
+    function pasteFromClipboard() {
+      navigator.clipboard.readText().then(text => {
+        elements.textArea.value = text;
+        runStatisticsCalculation();
+        updateHistory();
+        showToast('Pasted from clipboard', 'check');
+      }).catch(() => {
+        showToast('Paste failed', 'exclamation');
+      });
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const fileName = file.name;
+      state.currentFileName = fileName;
+
+      if (fileName.endsWith('.txt')) {
+        readTextFile(file);
+      } else if (fileName.endsWith('.md')) {
+        readTextFile(file);
+      } else if (fileName.endsWith('.json')) {
+        readTextFile(file);
+      } else if (fileName.endsWith('.pdf')) {
+        readPDFFile(file);
+      } else if (fileName.endsWith('.docx')) {
+        readDocxFile(file);
+      } else {
+        showToast('Unsupported file type', 'exclamation');
+      }
+    }
+
+    function readTextFile(file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        elements.textArea.value = e.target.result;
+        runStatisticsCalculation();
+        updateHistory();
+        updateFileDisplay();
+        showToast(`Loaded ${file.name}`, 'check');
+      };
+      reader.onerror = () => {
+        showToast('Failed to read file', 'exclamation');
+      };
+      reader.readAsText(file);
+    }
+
+    function readPDFFile(file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const pdfjsLib = window.pdfjsLib;
+          if (!pdfjsLib) {
+            showToast('PDF library not loaded', 'exclamation');
+            return;
+          }
+          const pdf = await pdfjsLib.getDocument(new Uint8Array(e.target.result)).promise;
+          let text = '';
+          for (let i = 1; i <= pdf.numPages; i++) {
+            const page = await pdf.getPage(i);
+            const content = await page.getTextContent();
+            text += content.items.map(item => item.str).join('') + '\n';
+          }
+          if (text.trim()) {
+            elements.textArea.value = text;
+            runStatisticsCalculation();
+            updateHistory();
+            updateFileDisplay();
+            showToast(`Loaded ${file.name}`, 'check');
+          } else {
+            showToast('PDF is empty or has no extractable text', 'exclamation');
+          }
+        } catch (error) {
+          console.error('PDF parse error:', error);
+          showToast(`PDF error: ${error.message}`, 'exclamation');
+        }
+      };
+      reader.onerror = () => {
+        showToast('Failed to read file', 'exclamation');
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function readDocxFile(file) {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        try {
+          const zip = new JSZip();
+          const docx = await zip.loadAsync(e.target.result);
+          const documentXml = await docx.file('word/document.xml').async('text');
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(documentXml, 'text/xml');
+          
+          const paragraphs = xmlDoc.getElementsByTagName('w:p');
+          let fullText = '';
+          for (let i = 0; i < paragraphs.length; i++) {
+            const texts = paragraphs[i].getElementsByTagName('w:t');
+            let paraText = '';
+            for (let j = 0; j < texts.length; j++) {
+              paraText += texts[j].textContent;
+            }
+            if (paraText.trim()) {
+              fullText += paraText + '\n';
+            }
+          }
+          const finalText = fullText.trim();
+          if (finalText) {
+            elements.textArea.value = finalText;
+            runStatisticsCalculation();
+            updateHistory();
+            updateFileDisplay();
+            showToast(`Loaded ${file.name}`, 'check');
+          } else {
+            showToast('DOCX file is empty or unreadable', 'exclamation');
+          }
+        } catch (error) {
+          console.error('DOCX parse error:', error);
+          showToast(`DOCX error: ${error.message}`, 'exclamation');
+        }
+      };
+      reader.onerror = () => {
+        showToast('Failed to read file', 'exclamation');
+      };
+      reader.readAsArrayBuffer(file);
+    }
+
+    function updateFileDisplay() {
+      if (state.currentFileName) {
+        elements.fileName.textContent = state.currentFileName;
+        elements.loadedFile.classList.remove('hidden');
+      }
+    }
+
+    function modifyText(type) {
+      let text = elements.textArea.value;
+      if (!text) return;
+
+      switch(type) {
+        case 'upper':
+          text = text.toUpperCase();
+          break;
+        case 'lower':
+          text = text.toLowerCase();
+          break;
+        case 'title':
+          text = text.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+          break;
+        case 'reverse':
+          text = text.split('').reverse().join('');
+          break;
+        case 'trim':
+          text = text.split('\n').map(l => l.trim()).join('\n');
+          break;
+        case 'newlines':
+          text = text.replace(/\n/g, ' ');
+          break;
+        case 'json':
+          try {
+            text = JSON.stringify(JSON.parse(text), null, 2);
+          } catch {
+            showToast('Invalid JSON', 'exclamation');
+            return;
+          }
+          break;
+        case 'minify':
+          text = text.replace(/\s+/g, ' ').trim();
+          break;
+      }
+
+      elements.textArea.value = text;
+      runStatisticsCalculation();
+      updateHistory();
+      showToast(`Applied: ${type}`, 'check');
+    }
+
+    function findText() {
+      const find = elements.findInput.value;
+      if (!find) {
+        showToast('Enter search term', 'exclamation');
+        return;
+      }
+
+      const text = elements.textArea.value;
+      const regex = new RegExp(find, 'gi');
+      const matches = text.match(regex);
+      showToast(`Found ${matches ? matches.length : 0} matches`, 'check');
+    }
+
+    function replaceText() {
+      const find = elements.findInput.value;
+      const replace = elements.replaceInput.value;
+      if (!find) {
+        showToast('Enter search term', 'exclamation');
+        return;
+      }
+
+      const regex = new RegExp(find, 'g');
+      elements.textArea.value = elements.textArea.value.replace(regex, replace);
+      runStatisticsCalculation();
+      updateHistory();
+      showToast(`Replaced all occurrences`, 'check');
+    }
+
+    function toggleMarkdownPreview() {
+      if (elements.markdownPreviewContainer.classList.contains('hidden')) {
+        try {
+          const html = marked.parse(elements.textArea.value);
+          elements.markdownPreview.innerHTML = html;
+          elements.markdownPreviewContainer.classList.remove('hidden');
+          showToast('Preview enabled', 'eye');
+        } catch (e) {
+          showToast('Preview failed', 'exclamation');
+        }
+      } else {
+        elements.markdownPreviewContainer.classList.add('hidden');
+        showToast('Preview closed', 'eye-slash');
+      }
+    }
+
+    function runStatisticsCalculation() {
+      const text = elements.textArea.value;
+      elements.charCount.textContent = text.length;
+      elements.wordCount.textContent = text.trim() ? text.trim().split(/\s+/).length : 0;
+      elements.lineCount.textContent = text ? text.split('\n').length : 0;
+    }
+
+    function sanitizeFilename(name) {
+      return name.replace(/[^a-z0-9_-]/gi, '_').toLowerCase();
+    }
+
+    function encodeText(text, encoding) {
+      const encoder = new TextEncoder();
+      const data = encoder.encode(text);
+      return new TextDecoder(encoding).decode(data);
+    }
+
+    function exportToTXT() {
+      const text = elements.textArea.value;
+      if (!text) {
+        showToast('Canvas is empty', 'exclamation');
+        return;
+      }
+
+      const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
+      const encoding = elements.encodingSelect.value;
+      const encodedText = encodeText(text, encoding);
+      
+      const blob = new Blob([encodedText], { type: 'text/plain;charset=' + encoding });
+      downloadBlob(blob, filename + '.txt');
+      showToast(`Exported ${filename}.txt`, 'check');
+    }
+
+    function exportToPDF() {
+      const text = elements.textArea.value;
+      if (!text) {
+        showToast('Canvas is empty', 'exclamation');
+        return;
+      }
+
+      const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
+      const doc = new jsPDF();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const margin = 15;
+      const lineHeight = 5;
+      const maxWidth = pageWidth - (margin * 2);
+
+      doc.setFontSize(12);
+      doc.setFont('courier', 'bold');
+      doc.text(filename, margin, margin);
+
+      doc.setFontSize(10);
+      doc.setFont('courier', 'normal');
+
+      const lines = doc.splitTextToSize(text, maxWidth);
+      let yPosition = margin + 10;
+
+      lines.forEach(line => {
+        if (yPosition > pageHeight - margin) {
+          doc.addPage();
+          yPosition = margin;
+        }
+        doc.text(line, margin, yPosition);
+        yPosition += lineHeight;
+      });
+
+      doc.save(filename + '.pdf');
+      showToast(`Exported ${filename}.pdf`, 'check');
+    }
+
+    function exportToDocx() {
+      const text = elements.textArea.value;
+      if (!text) {
+        showToast('Canvas is empty', 'exclamation');
+        return;
+      }
+
+      const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
+      const lines = text.split('\n');
+      
+      const { Document, Packer, Paragraph, TextRun } = window.docx;
+
+      const paragraphs = lines.map(line => {
+        return new Paragraph({
+          children: [new TextRun({ text: line, size: 24, font: 'Arial' })]
+        });
+      });
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: paragraphs
+        }]
+      });
+
+      Packer.toBlob(doc).then(blob => {
+        downloadBlob(blob, filename + '.docx');
+        showToast(`Exported ${filename}.docx`, 'check');
+      });
+    }
+
+    function exportToJSON() {
+      const text = elements.textArea.value;
+      if (!text) {
+        showToast('Canvas is empty', 'exclamation');
+        return;
+      }
+
+      const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
+      const json = JSON.stringify({
+        content: text,
+        metadata: {
+          characters: text.length,
+          words: text.trim().split(/\s+/).filter(w => w.length > 0).length,
+          lines: text.split('\n').length,
+          exportedAt: new Date().toISOString()
+        }
+      }, null, 2);
+
+      const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+      downloadBlob(blob, filename + '.json');
+      showToast(`Exported ${filename}.json`, 'check');
+    }
+
+    function downloadBlob(blob, filename) {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+    }
+
+    function loadDraft() {
+      try {
+        const saved = localStorage.getItem(CONFIG.STORAGE_KEY);
+        if (saved && saved.length > 0) {
+          elements.textArea.value = saved;
+          state.history = [saved];
+          state.historyIndex = 0;
+        }
+      } catch (error) {
+        console.warn('Storage load error:', error);
+      }
+    }
+
+    function autoSave() {
+      try {
+        const now = Date.now();
+        if (now - state.lastSave > CONFIG.AUTO_SAVE_INTERVAL) {
+          localStorage.setItem(CONFIG.STORAGE_KEY, elements.textArea.value);
+          state.lastSave = now;
+          elements.saveStatus.textContent = 'Saved';
+          setTimeout(() => { 
+            if (elements.saveStatus) {
+              elements.saveStatus.textContent = 'Ready'; 
+            }
+          }, 2000);
+        }
+      } catch (error) {
+        console.warn('Storage error:', error);
+      }
+    }
+
+    function saveDraftOnExit() {
+      try {
+        localStorage.setItem(CONFIG.STORAGE_KEY, elements.textArea.value);
+      } catch (error) {
+        console.warn('Final save error:', error);
+      }
+    }
+
+    function openConfirmModal() {
+      if (elements.confirmModal) {
+        elements.confirmModal.classList.remove('opacity-0', 'pointer-events-none');
+        elements.confirmModal.classList.add('opacity-100');
+      }
+    }
+
+    function closeConfirmModal() {
+      if (elements.confirmModal) {
+        elements.confirmModal.classList.add('opacity-0', 'pointer-events-none');
+        elements.confirmModal.classList.remove('opacity-100');
+      }
+    }
+
+    function executeClearCanvas() {
+      elements.textArea.value = '';
+      state.history = [''];
+      state.historyIndex = 0;
+      runStatisticsCalculation();
+      closeConfirmModal();
+      showToast('Canvas cleared', 'check');
+    }
+
+    function openShortcutsModal() {
+      if (elements.shortcutsModal) {
+        elements.shortcutsModal.classList.remove('opacity-0', 'pointer-events-none');
+        elements.shortcutsModal.classList.add('opacity-100');
+      }
+    }
+
+    function closeShortcutsModal() {
+      if (elements.shortcutsModal) {
+        elements.shortcutsModal.classList.add('opacity-0', 'pointer-events-none');
+        elements.shortcutsModal.classList.remove('opacity-100');
+      }
+    }
+
+    function showToast(message, icon = 'check') {
+      try {
+        const toastText = document.getElementById('toast-text');
+        const toastIcon = document.getElementById('toast-icon');
+        
+        if (!toastText || !toastIcon) return;
+
+        const iconMap = {
+          'undo': 'undo',
+          'redo': 'redo',
+          'eye': 'eye',
+          'eye-slash': 'eye-slash',
+          'info': 'circle-info',
+          'check': 'circle-check',
+          'exclamation': 'circle-exclamation'
+        };
+
+        toastText.textContent = message;
+        toastIcon.className = `fa-solid fa-${iconMap[icon] || 'circle-check'}`;
+        
+        if (state.toastTimeout) {
+          clearTimeout(state.toastTimeout);
+        }
+        
+        elements.msgToast.classList.remove('translate-y-20', 'opacity-0');
+        elements.msgToast.classList.add('translate-y-0', 'opacity-100');
+        
+        state.toastTimeout = setTimeout(() => {
+          if (elements.msgToast) {
+            elements.msgToast.classList.add('translate-y-20', 'opacity-0');
+            elements.msgToast.classList.remove('translate-y-0', 'opacity-100');
+          }
+        }, CONFIG.TOAST_DURATION_MS);
+      } catch (error) {
+        console.error('Toast error:', error);
+      }
+    }
+
+    // Initialize PDF.js
+    const pdfScript = document.createElement('script');
+    pdfScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    pdfScript.onload = () => {
+      if (window.pdfjsLib) {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      }
+    };
+    document.head.appendChild(pdfScript);
+
+    window.addEventListener('DOMContentLoaded', init);
+  </script>
+</body>
+</html>
