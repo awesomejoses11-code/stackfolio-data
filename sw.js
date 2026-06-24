@@ -1,83 +1,54 @@
-const CACHE = 'stackfolio-v1';
+// This is the service worker with the combined offline experience (Offline page + Offline copy of pages)
 
-self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(cache => {
-    cache.addAll([
-      '/',
-      '/index.html',
-      '/manifest.json',
-      '/icon-192.png',
-      '/icon-512.png'
-    ]).catch(() => {});
-  }));
-  self.skipWaiting();
-});
+const CACHE = "pwabuilder-offline-page";
 
-self.addEventListener('activate', e => {
-  e.waitUntil(caches.keys().then(keys => {
-    return Promise.all(keys.map(key => key !== CACHE ? caches.delete(key) : null));
-  }));
-  self.clients.claim();
-});
+importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
 
-self.addEventListener('fetch', e => {
-  if (e.request.method !== 'GET') return;
-  
-  e.respondWith(
-    fetch(e.request)
-      .then(r => {
-        if (!r || r.status !== 200) return r;
-        const copy = r.clone();
-        caches.open(CACHE).then(cache => cache.put(e.request, copy));
-        return r;
-      })
-      .catch(() => caches.match(e.request))
-  );
-});        })
-      );
-    })
-  );
-  self.clients.claim();
-});
+// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
+const offlineFallbackPage = "ToDo-replace-this-name.html";
 
-// Fetch event - serve from cache, fallback to network
-self.addEventListener('fetch', event => {
-  // Skip non-GET requests
-  if (event.request.method !== 'GET') {
-    return;
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
   }
+});
 
-  event.respondWith(
-    caches.match(event.request)
-      .then(response => {
-        // Return cached version if available
-        if (response) {
-          return response;
+self.addEventListener('install', async (event) => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then((cache) => cache.add(offlineFallbackPage))
+  );
+});
+
+if (workbox.navigationPreload.isSupported()) {
+  workbox.navigationPreload.enable();
+}
+
+workbox.routing.registerRoute(
+  new RegExp('/*'),
+  new workbox.strategies.StaleWhileRevalidate({
+    cacheName: CACHE
+  })
+);
+
+self.addEventListener('fetch', (event) => {
+  if (event.request.mode === 'navigate') {
+    event.respondWith((async () => {
+      try {
+        const preloadResp = await event.preloadResponse;
+
+        if (preloadResp) {
+          return preloadResp;
         }
 
-        // Otherwise fetch from network
-        return fetch(event.request)
-          .then(response => {
-            // Don't cache non-successful responses
-            if (!response || response.status !== 200 || response.type === 'error') {
-              return response;
-            }
+        const networkResp = await fetch(event.request);
+        return networkResp;
+      } catch (error) {
 
-            // Clone the response
-            const responseToCache = response.clone();
-
-            // Cache successful responses
-            caches.open(CACHE_NAME)
-              .then(cache => {
-                cache.put(event.request, responseToCache);
-              });
-
-            return response;
-          })
-          .catch(() => {
-            // Offline fallback - return cached version if available
-            return caches.match(event.request);
-          });
-      })
-  );
+        const cache = await caches.open(CACHE);
+        const cachedResp = await cache.match(offlineFallbackPage);
+        return cachedResp;
+      }
+    })());
+  }
 });
