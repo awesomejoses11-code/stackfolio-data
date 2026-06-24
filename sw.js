@@ -1,54 +1,84 @@
-// This is the service worker with the combined offline experience (Offline page + Offline copy of pages)
+const CACHE_NAME = 'stackfolio-v1';
+const urlsToCache = [
+  '/',
+  '/index.html',
+  '/preview.html',
+  '/qr-code-generator.html',
+  '/clipboard assistant.html',
+  '/Neon_Fury.html',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/manifest.json'
+];
 
-const CACHE = "pwabuilder-offline-page";
-
-importScripts('https://storage.googleapis.com/workbox-cdn/releases/5.1.2/workbox-sw.js');
-
-// TODO: replace the following with the correct offline fallback page i.e.: const offlineFallbackPage = "offline.html";
-const offlineFallbackPage = "ToDo-replace-this-name.html";
-
-self.addEventListener("message", (event) => {
-  if (event.data && event.data.type === "SKIP_WAITING") {
-    self.skipWaiting();
-  }
-});
-
-self.addEventListener('install', async (event) => {
+// Install event - cache assets
+self.addEventListener('install', event => {
   event.waitUntil(
-    caches.open(CACHE)
-      .then((cache) => cache.add(offlineFallbackPage))
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log('Caching app shell');
+        return cache.addAll(urlsToCache);
+      })
+      .catch(err => console.log('Cache failed:', err))
   );
+  self.skipWaiting();
 });
 
-if (workbox.navigationPreload.isSupported()) {
-  workbox.navigationPreload.enable();
-}
+// Activate event - cleanup old caches
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys().then(cacheNames => {
+      return Promise.all(
+        cacheNames.map(cacheName => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
 
-workbox.routing.registerRoute(
-  new RegExp('/*'),
-  new workbox.strategies.StaleWhileRevalidate({
-    cacheName: CACHE
-  })
-);
+// Fetch event - serve from cache, fallback to network
+self.addEventListener('fetch', event => {
+  // Skip non-GET requests
+  if (event.request.method !== 'GET') {
+    return;
+  }
 
-self.addEventListener('fetch', (event) => {
-  if (event.request.mode === 'navigate') {
-    event.respondWith((async () => {
-      try {
-        const preloadResp = await event.preloadResponse;
-
-        if (preloadResp) {
-          return preloadResp;
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        // Return cached version if available
+        if (response) {
+          return response;
         }
 
-        const networkResp = await fetch(event.request);
-        return networkResp;
-      } catch (error) {
+        // Otherwise fetch from network
+        return fetch(event.request)
+          .then(response => {
+            // Don't cache non-successful responses
+            if (!response || response.status !== 200 || response.type === 'error') {
+              return response;
+            }
 
-        const cache = await caches.open(CACHE);
-        const cachedResp = await cache.match(offlineFallbackPage);
-        return cachedResp;
-      }
-    })());
-  }
+            // Clone the response
+            const responseToCache = response.clone();
+
+            // Cache successful responses
+            caches.open(CACHE_NAME)
+              .then(cache => {
+                cache.put(event.request, responseToCache);
+              });
+
+            return response;
+          })
+          .catch(() => {
+            // Offline fallback - return cached version if available
+            return caches.match(event.request);
+          });
+      })
+  );
 });
