@@ -1,7 +1,7 @@
 {
   "name": "StackFolio Static Utilities Hub",
   "short_name": "StackFolio",
-  "description": "Fast browser utilities - HTML Previewer, QR Generator, Clipboard Studio &amp; more",
+  "description": "Fast browser utilities - HTML Previewer, QR Generator, Clipboard Studio & more",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
@@ -41,6 +41,54 @@
       "src": "/icon-192.png",
       "sizes": "192x192",
       "type": "image/png"
+    }
+  ],
+  "file_handlers": [
+    {
+      "action": "/",
+      "accept": {
+        "text/html": [".html"],
+        "text/plain": [".txt"],
+        "application/json": [".json"]
+      }
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "HTML Previewer",
+      "short_name": "Previewer",
+      "description": "Preview HTML templates in real-time",
+      "url": "/preview.html",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "QR Generator",
+      "short_name": "QR",
+      "description": "Generate QR codes instantly",
+      "url": "/qr-code-generator.html",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Neon Fury",
+      "short_name": "Game",
+      "description": "Fast-paced matrix runner game",
+      "url": "/Neon_Fury.html",
+      "icons": [
+        {
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }
