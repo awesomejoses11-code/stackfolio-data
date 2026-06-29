@@ -8,10 +8,14 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script>
+    // Ensure jsPDF is available globally
+    if (window.jspdf && !window.jsPDF) {
+      window.jsPDF = window.jspdf.jsPDF;
+    }
+  </script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-  <!-- DOCX library (handles all the packaging) -->
-  <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
@@ -24,6 +28,7 @@
       --border-blue: rgba(255, 215, 0, 0.1);
     }
 
+    /* Light mode - professional & clean */
     body.light-mode {
       --deep-blue: #F5F7FA;
       --card-blue: #FFFFFF;
@@ -410,11 +415,11 @@
             <div class="file-input-wrapper">
               <label class="w-full btn-gold py-3 px-5 rounded-xl transition-all flex items-center justify-center gap-2 text-xs cursor-pointer">
                 <i class="fa-solid fa-upload"></i> Choose File
-                <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.md,.json" onchange="handleFileUpload(event)">
+                <input type="file" id="fileInput" accept=".txt,.pdf,.docx,.doc,.md,.json" onchange="handleFileUpload(event)">
               </label>
             </div>
             <div class="text-xs text-slate-400 text-center">
-              <span class="text-slate-500">Supports:</span> TXT, PDF, DOCX, MD, JSON
+              <span class="text-slate-500">Supports:</span> TXT, PDF, DOCX, DOC, MD, JSON
             </div>
           </div>
         </div>
@@ -710,6 +715,7 @@
       const file = event.target.files[0];
       if (!file) return;
 
+      const fileType = file.type;
       const fileName = file.name;
       state.currentFileName = fileName;
 
@@ -721,7 +727,7 @@
         readTextFile(file);
       } else if (fileName.endsWith('.pdf')) {
         readPDFFile(file);
-      } else if (fileName.endsWith('.docx')) {
+      } else if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
         readDocxFile(file);
       } else {
         showToast('Unsupported file type', 'exclamation');
@@ -785,10 +791,29 @@
         try {
           const zip = new JSZip();
           const docx = await zip.loadAsync(e.target.result);
-          const documentXml = await docx.file('word/document.xml').async('text');
+          
+          // Try to get document.xml
+          let documentXml = null;
+          try {
+            documentXml = await docx.file('word/document.xml').async('text');
+          } catch (err) {
+            showToast('Invalid DOCX: no document.xml found', 'exclamation');
+            return;
+          }
+
+          // Parse XML and extract text
           const parser = new DOMParser();
           const xmlDoc = parser.parseFromString(documentXml, 'text/xml');
           
+          // Extract all text nodes
+          const textElements = xmlDoc.getElementsByTagName('w:t');
+          let extractedText = '';
+          
+          for (let i = 0; i < textElements.length; i++) {
+            extractedText += textElements[i].textContent;
+          }
+
+          // Also handle paragraph breaks
           const paragraphs = xmlDoc.getElementsByTagName('w:p');
           let fullText = '';
           for (let i = 0; i < paragraphs.length; i++) {
@@ -801,7 +826,9 @@
               fullText += paraText + '\n';
             }
           }
-          const finalText = fullText.trim();
+
+          const finalText = fullText.trim() || extractedText.trim();
+          
           if (finalText) {
             elements.textArea.value = finalText;
             runStatisticsCalculation();
@@ -955,35 +982,36 @@
         return;
       }
 
-      const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
-      const doc = new jsPDF();
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 15;
-      const lineHeight = 5;
-      const maxWidth = pageWidth - (margin * 2);
+      try {
+        const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
+        const doc = new jsPDF();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const margin = 15;
+        const lineHeight = 5;
+        const maxWidth = pageWidth - (margin * 2);
 
-      doc.setFontSize(12);
-      doc.setFont('courier', 'bold');
-      doc.text(filename, margin, margin);
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
 
-      doc.setFontSize(10);
-      doc.setFont('courier', 'normal');
+        const lines = doc.splitTextToSize(text, maxWidth);
+        let yPosition = margin;
 
-      const lines = doc.splitTextToSize(text, maxWidth);
-      let yPosition = margin + 10;
+        lines.forEach(line => {
+          if (yPosition > pageHeight - margin) {
+            doc.addPage();
+            yPosition = margin;
+          }
+          doc.text(line, margin, yPosition);
+          yPosition += lineHeight;
+        });
 
-      lines.forEach(line => {
-        if (yPosition > pageHeight - margin) {
-          doc.addPage();
-          yPosition = margin;
-        }
-        doc.text(line, margin, yPosition);
-        yPosition += lineHeight;
-      });
-
-      doc.save(filename + '.pdf');
-      showToast(`Exported ${filename}.pdf`, 'check');
+        doc.save(filename + '.pdf');
+        showToast(`Exported ${filename}.pdf`, 'check');
+      } catch (error) {
+        console.error('PDF export error:', error);
+        showToast('PDF export failed: ' + error.message, 'exclamation');
+      }
     }
 
     function exportToDocx() {
@@ -994,24 +1022,27 @@
       }
 
       const filename = sanitizeFilename(elements.exportFilename.value || 'stackfolio_export');
-      const lines = text.split('\n');
+      const zip = new JSZip();
       
-      const { Document, Packer, Paragraph, TextRun } = window.docx;
+      const escapedText = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
 
-      const paragraphs = lines.map(line => {
-        return new Paragraph({
-          children: [new TextRun({ text: line, size: 24, font: 'Arial' })]
-        });
-      });
+      const paragraphs = escapedText.split('\n').map(para => {
+        const cleanPara = para.trim();
+        return `<w:p><w:r><w:t${cleanPara ? '' : ' xml:space="preserve"'}>${cleanPara || ' '}</w:t></w:r></w:p>`;
+      }).join('');
 
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: paragraphs
-        }]
-      });
+      const wordFolder = zip.folder('word');
+      wordFolder.file('document.xml',
+        '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>' +
+        '<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">' +
+        `<w:body>${paragraphs}</w:body>` +
+        '</w:document>'
+      );
 
-      Packer.toBlob(doc).then(blob => {
+      zip.generateAsync({ type: 'blob' }).then(blob => {
         downloadBlob(blob, filename + '.docx');
         showToast(`Exported ${filename}.docx`, 'check');
       });
@@ -1174,6 +1205,11 @@
       }
     };
     document.head.appendChild(pdfScript);
+
+    // Ensure mammoth is available
+    if (!window.mammoth && typeof mammoth !== 'undefined') {
+      window.mammoth = mammoth;
+    }
 
     window.addEventListener('DOMContentLoaded', init);
   </script>
