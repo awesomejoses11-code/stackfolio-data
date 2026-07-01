@@ -2,8 +2,8 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>StackFolio Live HTML Previewer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+  <title>StackFolio Mobile Previewer</title>
   
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -21,35 +21,32 @@
     body {
       font-family: 'Plus Jakarta Sans', sans-serif;
       background-color: var(--deep-blue);
-      background-image: 
-        radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.04) 0%, transparent 40%),
-        radial-gradient(circle at 90% 90%, rgba(0, 210, 255, 0.04) 0%, transparent 40%);
+      background-image: radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.04) 0%, transparent 40%);
       color: #F8FAFC;
+      overscroll-behavior: none;
     }
 
     .editor-container {
       font-family: 'Fira Code', monospace;
-      font-size: 14px;
-      line-height: 1.5;
+      font-size: 13px;
+      line-height: 1.6;
     }
 
     #code-editor {
       resize: none;
       white-space: pre;
       overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
     }
 
-    #line-numbers::-webkit-scrollbar,
-    #console-logs::-webkit-scrollbar,
-    #code-editor::-webkit-scrollbar {
-      height: 6px;
-      width: 6px;
+    /* Custom Scrollbars */
+    #line-numbers::-webkit-scrollbar, #console-logs::-webkit-scrollbar, #code-editor::-webkit-scrollbar {
+      height: 4px;
+      width: 4px;
     }
-    #code-editor::-webkit-scrollbar-track, #console-logs::-webkit-scrollbar-track {
-      background: transparent;
-    }
+    #code-editor::-webkit-scrollbar-track, #console-logs::-webkit-scrollbar-track { background: transparent; }
     #code-editor::-webkit-scrollbar-thumb, #console-logs::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.15);
       border-radius: 99px;
     }
 
@@ -59,191 +56,189 @@
       border: 1px solid var(--border-blue);
     }
 
-    .switch {
-      position: relative;
-      display: inline-block;
-      width: 44px;
-      height: 22px;
+    /* Mobile Optimizations */
+    @media (max-width: 640px) {
+      .hide-on-mobile { display: none !important; }
+      .workspace-grid { grid-template-columns: 1fr !important; }
+      #panel-split-tab { display: none !important; }
+      #line-numbers { width: 28px; font-size: 10px; }
+      #code-editor { font-size: 12px; padding: 10px 8px; }
+      .toolbar-icon-btn { width: 38px; height: 38px; font-size: 14px; }
+      .header-compact { padding: 8px; gap: 6px; }
+      .search-panel-mobile { flex-direction: column; gap: 6px; }
     }
-    .switch input { 
-      opacity: 0;
-      width: 0;
-      height: 0;
-    }
+
+    /* Toggle Switch */
+    .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+    .switch input { opacity: 0; width: 0; height: 0; }
     .slider {
-      position: absolute;
-      cursor: pointer;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background-color: #1E293B;
-      transition: .3s;
-      border-radius: 34px;
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+      background-color: #1E293B; transition: .3s; border-radius: 34px; border: 1px solid rgba(255, 255, 255, 0.1);
     }
     .slider:before {
-      position: absolute;
-      content: "";
-      height: 14px;
-      width: 14px;
-      left: 3px;
-      bottom: 3px;
-      background-color: white;
-      transition: .3s;
-      border-radius: 50%;
+      position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px;
+      background-color: white; transition: .3s; border-radius: 50%;
     }
-    input:checked + .slider {
-      background-color: var(--gold);
-    }
-    input:checked + .slider:before {
-      transform: translateX(22px);
-      background-color: #050814;
-    }
+    input:checked + .slider { background-color: var(--gold); }
+    input:checked + .slider:before { transform: translateX(18px); background-color: #050814; }
 
-    .loading-spinner {
-      display: inline-block;
-      animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
+    /* Toast */
+    #toast-card { z-index: 999; }
   </style>
 </head>
 <body class="h-screen flex flex-col justify-between overflow-hidden">
 
-  <header class="p-4 glass border-b border-white/5 flex flex-wrap justify-between items-center gap-4 z-40 shrink-0">
-    <div class="flex items-center gap-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/10">
+  <!-- HEADER -->
+  <header class="p-2 sm:p-3 glass border-b border-white/5 flex flex-wrap justify-between items-center gap-2 z-40 shrink-0 header-compact">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/10 text-xs">
         SF
       </div>
-      <div>
-        <h1 class="text-xs font-black uppercase tracking-[0.2em] text-white/40 leading-none">StackFolio Workspace</h1>
-        <p class="text-sm font-bold text-[#FFD700] mt-1">Live HTML Previewer</p>
+      <div class="hide-on-mobile">
+        <h1 class="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">StackFolio</h1>
+        <p class="text-[11px] font-bold text-[#FFD700] mt-0.5">Live Preview</p>
       </div>
     </div>
 
-    <div class="flex flex-wrap items-center gap-3 sm:gap-4">
-      <div class="flex items-center gap-2.5 bg-black/40 px-3.5 py-1.5 rounded-xl border border-white/5">
-        <span class="text-[10px] sm:text-xs text-slate-400 font-bold tracking-wide uppercase">Execute JS</span>
+    <div class="flex flex-wrap items-center gap-1.5 sm:gap-3 flex-1 sm:flex-none justify-end">
+      
+      <!-- JS Toggle -->
+      <div class="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hide-on-mobile">
+        <span class="text-[9px] text-slate-400 font-bold tracking-wide uppercase">JS</span>
         <label class="switch">
           <input type="checkbox" id="js-toggle" checked onchange="toggleJsExecution()" />
           <span class="slider"></span>
         </label>
       </div>
 
-      <button onclick="document.getElementById('file-input').click()" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
-        <i class="fa-solid fa-upload mr-1 text-[#00D2FF]"></i> Upload
+      <!-- Templates Select (Mobile optimized) -->
+      <select onchange="injectPreset(this.value)" class="bg-black/40 text-slate-300 px-2 py-1.5 rounded border border-white/5 text-[10px] sm:text-xs font-semibold outline-none max-w-[80px] sm:max-w-none">
+        <option value="">Templates</option>
+        <option value="counter">Counter</option>
+        <option value="tailwind">Tailwind</option>
+      </select>
+
+      <!-- Mobile Toolbar -->
+      <button onclick="openSearch()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
+        <i class="fa-solid fa-magnifying-glass text-[#00D2FF]"></i>
       </button>
 
-      <div class="flex items-center gap-2">
-        <button onclick="injectPreset('counter')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
-          <i class="fa-solid fa-square-plus mr-1 text-yellow-500"></i> Counter
-        </button>
-        <button onclick="injectPreset('tailwind')" class="bg-white/5 hover:bg-white/10 text-slate-300 px-3 py-1.5 rounded-lg border border-white/5 text-xs font-semibold transition-all">
-          <i class="fa-solid fa-wand-magic-sparkles mr-1 text-[#00D2FF]"></i> Tailwind
+      <button onclick="minifyCode()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
+        <i class="fa-solid fa-compress text-yellow-500"></i>
+      </button>
+
+      <button onclick="document.getElementById('file-input').click()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
+        <i class="fa-solid fa-upload text-[#00D2FF]"></i>
+      </button>
+      
+      <!-- Download -->
+      <div class="flex items-center gap-1.5 bg-black/40 rounded-lg border border-white/5 p-1">
+        <input type="text" id="filename-input" value="preview" class="bg-transparent border-none outline-none text-white text-[10px] sm:text-xs w-14 sm:w-24 px-1.5 font-mono" placeholder="filename" />
+        <button onclick="downloadCode()" class="bg-gradient-to-tr from-[#FFD700] to-[#FDB931] hover:brightness-110 text-[#050814] px-2 sm:px-3 py-1.5 rounded-md font-bold text-[10px] sm:text-xs flex items-center gap-1 transition-all">
+          <i class="fa-solid fa-download"></i>
+          <span class="hide-on-mobile">.html</span>
         </button>
       </div>
     </div>
   </header>
 
-  <div class="bg-[#070b1d] border-b border-white/5 px-4 py-2 flex items-center justify-between shrink-0">
-    <div class="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
-      <button onclick="setWorkspaceView('editor')" id="view-tab-editor" class="text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10">
-        <i class="fa-solid fa-code"></i> Code Editor
-      </button>
-      <button onclick="setWorkspaceView('preview')" id="view-tab-preview" class="text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white">
-        <i class="fa-solid fa-eye"></i> Live Preview
-      </button>
-      <button onclick="setWorkspaceView('split')" id="view-tab-split" class="hidden md:flex text-xs font-bold py-2 px-4 rounded-lg transition-all items-center gap-2 text-slate-400 hover:text-white">
-        <i class="fa-solid fa-columns"></i> Split View
-      </button>
-    </div>
-
-    <div class="flex items-center gap-2">
-      <button onclick="copyCode()" class="text-xs text-slate-400 hover:text-white transition-colors flex items-center gap-1.5 font-bold bg-white/5 px-3 py-2 rounded-lg border border-white/5">
-        <i class="fa-solid fa-copy text-yellow-500"></i> Copy Source
-      </button>
-      <button onclick="downloadCode()" class="text-xs text-[#050814] bg-gradient-to-tr from-[#FFD700] to-[#FDB931] hover:brightness-110 px-3.5 py-2 rounded-lg font-black uppercase transition-all flex items-center gap-1.5">
-        <i class="fa-solid fa-download"></i> Download .html
-      </button>
-    </div>
+  <!-- SEARCH & REPLACE PANEL -->
+  <div id="search-panel" class="hidden bg-[#0a1129] border-b border-white/5 p-2 sm:p-3 flex flex-wrap items-center gap-2 shrink-0 search-panel-mobile">
+    <input id="search-find" placeholder="Find..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[80px]" />
+    <input id="search-replace" placeholder="Replace with..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[80px]" />
+    <button onclick="replaceAll()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded text-xs transition-all">Replace All</button>
+    <button onclick="closeSearch()" class="text-slate-500 hover:text-white text-xs px-2">✕</button>
   </div>
 
-  <main class="flex-1 p-4 min-h-0 flex flex-col gap-4 relative">
+  <!-- VIEW MODE TABS -->
+  <div class="bg-[#070b1d] border-b border-white/5 px-3 py-1.5 flex items-center justify-between shrink-0">
+    <div class="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
+      <button onclick="setWorkspaceView('editor')" id="view-tab-editor" class="text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10">
+        <i class="fa-solid fa-code"></i> <span class="hide-on-mobile">Editor</span>
+      </button>
+      <button onclick="setWorkspaceView('preview')" id="view-tab-preview" class="text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-eye"></i> <span class="hide-on-mobile">Preview</span>
+      </button>
+      <button onclick="setWorkspaceView('split')" id="view-tab-split" class="hidden md:flex text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all items-center gap-1 sm:gap-2 text-slate-400 hover:text-white">
+        <i class="fa-solid fa-columns"></i> Split
+      </button>
+    </div>
+
+    <button onclick="clearEditor()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold bg-red-500/10 px-2 py-1 rounded-md">
+      <i class="fa-solid fa-eraser"></i> <span class="hide-on-mobile">Reset</span>
+    </button>
+  </div>
+
+  <!-- WORKSPACE -->
+  <main class="flex-1 p-2 sm:p-3 min-h-0 flex flex-col gap-2 sm:gap-3 relative">
     
-    <div id="workspace-wrapper" class="flex-1 grid grid-cols-1 gap-4 min-h-0">
+    <div id="workspace-wrapper" class="flex-1 grid grid-cols-1 gap-2 sm:gap-3 min-h-0 workspace-grid">
       
-      <div id="panel-editor" class="flex flex-col h-full bg-[#080d20] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-        <div class="px-4 py-2.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
-          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <i class="fa-solid fa-align-left text-yellow-500"></i> HTML/CSS/JS Source Code
+      <!-- EDITOR PANEL -->
+      <div id="panel-editor" class="flex flex-col h-full bg-[#080d20] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+          <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+            <i class="fa-solid fa-align-left text-yellow-500 text-xs"></i> 
+            <span class="hide-on-mobile">Source Code</span>
           </span>
-          <button onclick="clearEditor()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold bg-red-500/10 px-2 py-1 rounded-md">
-            <i class="fa-solid fa-eraser"></i> Reset Code
-          </button>
+          <span class="text-[9px] text-slate-500 font-mono" id="line-count"></span>
         </div>
 
         <div class="flex-1 flex editor-container overflow-hidden bg-[#040714] text-slate-300">
-          <div id="line-numbers" class="w-12 py-4 select-none text-right pr-3 text-slate-600 font-mono bg-black/20 border-r border-white/5 overflow-hidden">
+          <div id="line-numbers" class="w-10 sm:w-12 py-3 select-none text-right pr-2 sm:pr-3 text-slate-600 font-mono bg-black/20 border-r border-white/5 overflow-hidden text-[10px] sm:text-sm leading-relaxed">
             <div>1</div>
           </div>
           <textarea id="code-editor" autocomplete="off" autofocus spellcheck="false" 
-            class="flex-1 py-4 px-3 bg-transparent outline-none border-none text-slate-200 resize-none overflow-y-auto leading-relaxed"
-            placeholder="Write your HTML, CSS, and JS here..."></textarea>
+            class="flex-1 py-3 px-2 sm:px-3 bg-transparent outline-none border-none text-slate-200 resize-none overflow-y-auto leading-relaxed text-[12px] sm:text-sm"
+            placeholder="Start writing your HTML here..."></textarea>
         </div>
       </div>
 
-      <div id="panel-preview" class="hidden flex flex-col h-full bg-[#080d20] border border-white/5 rounded-2xl overflow-hidden shadow-2xl">
-        <div class="px-4 py-2.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
-          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+      <!-- PREVIEW PANEL -->
+      <div id="panel-preview" class="hidden flex flex-col h-full bg-[#080d20] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
+        <div class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+          <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            Sandboxed Viewport
+            <span class="hide-on-mobile">Sandbox</span>
           </span>
-          <span id="preview-status" class="text-[10px] text-slate-500 font-mono">Initializing...</span>
+          <span id="preview-status" class="text-[9px] sm:text-[10px] text-slate-500 font-mono">Loading...</span>
         </div>
-
         <div class="flex-1 bg-white relative overflow-hidden">
-          <iframe id="preview-frame" title="Live Preview" class="w-full h-full border-none bg-white"></iframe>
+          <iframe id="preview-frame" title="Live Preview" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin"></iframe>
         </div>
       </div>
 
     </div>
 
-    <div id="panel-console" class="bg-[#080d20] border border-white/5 rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 h-10 shrink-0">
-      <div onclick="toggleConsole()" class="px-4 py-2 bg-[#0a1129] border-b border-white/5 flex justify-between items-center cursor-pointer select-none">
-        <div class="flex items-center gap-3">
-          <span class="text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-terminal text-emerald-400"></i> Console Output
+    <!-- CONSOLE PANEL -->
+    <div id="panel-console" class="bg-[#080d20] border border-white/5 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 h-8 sm:h-10 shrink-0">
+      <div onclick="toggleConsole()" class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center cursor-pointer select-none">
+        <div class="flex items-center gap-2 sm:gap-3">
+          <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+            <i class="fa-solid fa-terminal text-emerald-400 text-xs"></i> <span class="hide-on-mobile">Console</span>
           </span>
-          <span class="text-[10px] bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded font-mono font-bold">
-            <span id="log-count">0</span> logs
+          <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold">
+            <span id="log-count">0</span>
           </span>
         </div>
-        <i class="fa-solid fa-chevron-down text-slate-500 text-xs transition-transform" id="console-toggle-icon"></i>
+        <i class="fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform" id="console-toggle-icon"></i>
       </div>
-      <div id="console-content" class="overflow-y-auto flex-1 bg-black/30 p-3 hidden">
-        <div id="console-logs" class="space-y-1 font-mono text-xs"></div>
+      <div id="console-content" class="overflow-y-auto flex-1 bg-black/30 p-2 hidden">
+        <div id="console-logs" class="space-y-1 font-mono text-[10px] sm:text-xs"></div>
       </div>
     </div>
 
   </main>
 
-  <!-- Toast Notification -->
-  <div id="toast-card" class="fixed bottom-6 left-6 bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-5 py-3 rounded-xl shadow-2xl flex items-center gap-3 translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50">
-    <i id="toast-icon" class="fa-solid fa-circle-check text-lg"></i>
+  <input type="file" id="file-input" class="hidden" accept=".html,.htm" onchange="handleFileUpload(event)" />
+
+  <div id="toast-card" class="fixed bottom-4 left-4 right-4 sm:left-6 sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50">
+    <i id="toast-icon" class="fa-solid fa-circle-check text-base sm:text-lg"></i>
     <span id="toast-text" class="text-sm font-semibold">Done!</span>
   </div>
 
-  <!-- File Input (Hidden) -->
-  <input type="file" id="file-input" class="hidden" accept=".html,.htm" onchange="handleFileUpload(event)" />
-
   <script>
-    // ============================================================================
-    // DOM ELEMENT REFERENCES
-    // ============================================================================
+    // DOM refs
     const editor = document.getElementById('code-editor');
     const lineNumbers = document.getElementById('line-numbers');
     const previewFrame = document.getElementById('preview-frame');
@@ -252,503 +247,225 @@
     const workspaceWrapper = document.getElementById('workspace-wrapper');
     const consoleLogs = document.getElementById('console-logs');
     const logCount = document.getElementById('log-count');
-    const fileInput = document.getElementById('file-input');
 
-    // ============================================================================
-    // STATE VARIABLES
-    // ============================================================================
-    let currentViewMode = 'editor';
     let debounceTimer = null;
     let consoleIsOpen = false;
     let logCounter = 0;
 
-    // ============================================================================
-    // DEFAULT TEMPLATES
-    // ============================================================================
+    // Templates
     const defaultTemplate = `<!DOCTYPE html>
 <html>
 <head>
-  <title>Counter App</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      margin: 0;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    }
-    .container {
-      background: white;
-      padding: 40px;
-      border-radius: 10px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-      text-align: center;
-    }
-    h1 { color: #333; margin: 0 0 30px 0; }
-    .counter { font-size: 48px; font-weight: bold; color: #667eea; margin: 20px 0; }
-    button {
-      background: #667eea;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      margin: 5px;
-      border-radius: 5px;
-      cursor: pointer;
-      font-size: 16px;
-    }
-    button:hover { background: #764ba2; }
-  </style>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My App</title>
 </head>
 <body>
-  <div class="container">
-    <h1>Counter App</h1>
-    <div class="counter" id="counter">0</div>
-    <button onclick="increment()">+</button>
-    <button onclick="decrement()">−</button>
-    <button onclick="reset()">Reset</button>
+  <div style="padding:20px; font-family:sans-serif;">
+    <h1>Neon Arena</h1>
+    <p>Edit this code!</p>
   </div>
-
-  <script>
-    let count = 0;
-    const counterDisplay = document.getElementById('counter');
-
-    function increment() {
-      count++;
-      counterDisplay.textContent = count;
-    }
-
-    function decrement() {
-      count--;
-      counterDisplay.textContent = count;
-    }
-
-    function reset() {
-      count = 0;
-      counterDisplay.textContent = count;
-    }
-  <\/script>
 </body>
 </html>`;
 
     const tailwindTemplate = `<!DOCTYPE html>
 <html>
 <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="https://cdn.tailwindcss.com"><\/script>
 </head>
 <body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen flex items-center justify-center p-4">
-  <div class="max-w-md w-full">
-    <div class="bg-white rounded-2xl shadow-2xl p-8">
-      <div class="text-center mb-8">
-        <div class="w-16 h-16 bg-indigo-600 rounded-full flex items-center justify-center mx-auto mb-4">
-          <span class="text-white text-2xl font-bold">✨</span>
-        </div>
-        <h1 class="text-3xl font-bold text-gray-900">Tailwind Ready</h1>
-        <p class="text-gray-600 mt-2">Start building with utility classes</p>
-      </div>
-
-      <div class="space-y-4 mb-8">
-        <div class="bg-indigo-50 border-l-4 border-indigo-600 p-4 rounded">
-          <h3 class="font-semibold text-indigo-900">Responsive Design</h3>
-          <p class="text-sm text-indigo-800">Mobile-first utilities included</p>
-        </div>
-        <div class="bg-purple-50 border-l-4 border-purple-600 p-4 rounded">
-          <h3 class="font-semibold text-purple-900">Dark Mode</h3>
-          <p class="text-sm text-purple-800">Built-in dark mode support</p>
-        </div>
-      </div>
-
-      <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition">
-        Get Started
-      </button>
-    </div>
+  <div class="max-w-md w-full bg-white rounded-2xl shadow-2xl p-8 text-center">
+    <h1 class="text-3xl font-bold text-gray-900 mb-4">Tailwind Ready</h1>
+    <button class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-6 rounded-lg transition">Action</button>
   </div>
 </body>
 </html>`;
 
-    // ============================================================================
-    // INITIALIZATION
-    // ============================================================================
+    // Init
     window.addEventListener('DOMContentLoaded', () => {
-      try {
-        // Load Default Code
-        editor.value = defaultTemplate;
-        
-        // Setup events
-        editor.addEventListener('input', handleEditorInput);
-        editor.addEventListener('scroll', syncScroll);
-        
-        // Init viewports
-        updateLineNumbers();
-        
-        // Give iframe time to initialize, then load preview
-        setTimeout(() => {
-          triggerPreviewUpdate();
-        }, 100);
-        
-        // Handle workspace layout orientation resizing safely
-        window.addEventListener('resize', () => {
-          if (window.innerWidth < 768 && currentViewMode === 'split') {
-            setWorkspaceView('editor');
-          }
-        });
-
-        showToast('Editor ready!', 'check');
-      } catch (error) {
-        console.error('Initialization error:', error);
-        showToast('Error initializing editor', 'exclamation');
-      }
+      editor.value = defaultTemplate;
+      editor.addEventListener('input', handleEditorInput);
+      editor.addEventListener('scroll', syncScroll);
+      updateLineNumbers();
+      setTimeout(() => triggerPreviewUpdate(), 150);
+      // Hide split tab on mobile
+      if (window.innerWidth < 768) document.getElementById('view-tab-split').style.display = 'none';
     });
 
-    // ============================================================================
-    // VIEW MODE MANAGEMENT
-    // ============================================================================
-    function setWorkspaceView(mode) {
-      try {
-        currentViewMode = mode;
-        
-        const tabEditor = document.getElementById('view-tab-editor');
-        const tabPreview = document.getElementById('view-tab-preview');
-        const tabSplit = document.getElementById('view-tab-split');
-
-        const panelEditor = document.getElementById('panel-editor');
-        const panelPreview = document.getElementById('panel-preview');
-
-        // Clear all active tab buttons
-        [tabEditor, tabPreview, tabSplit].forEach(tab => {
-          if (tab) {
-            tab.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 text-slate-400 hover:text-white";
-          }
-        });
-
-        // Show/Hide Panels depending on selection
-        if (mode === 'editor') {
-          tabEditor.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
-          workspaceWrapper.className = "flex-1 grid grid-cols-1 gap-4 min-h-0";
-          panelEditor.classList.remove('hidden');
-          panelPreview.classList.add('hidden');
-        } 
-        else if (mode === 'preview') {
-          tabPreview.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
-          workspaceWrapper.className = "flex-1 grid grid-cols-1 gap-4 min-h-0";
-          panelEditor.classList.add('hidden');
-          panelPreview.classList.remove('hidden');
-          triggerPreviewUpdate();
-        } 
-        else if (mode === 'split') {
-          tabSplit.className = "text-xs font-bold py-2 px-4 rounded-lg transition-all flex items-center gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
-          workspaceWrapper.className = "flex-1 grid grid-cols-2 gap-4 min-h-0";
-          panelEditor.classList.remove('hidden');
-          panelPreview.classList.remove('hidden');
-          triggerPreviewUpdate();
-        }
-      } catch (error) {
-        console.error('View mode error:', error);
-      }
-    }
-
-    // ============================================================================
-    // EDITOR FUNCTIONS
-    // ============================================================================
+    // --- Editor Handling ---
     function handleEditorInput() {
-      try {
-        updateLineNumbers();
-        
-        window.clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => {
-          triggerPreviewUpdate();
-        }, 300);
-      } catch (error) {
-        console.error('Editor input error:', error);
-      }
+      updateLineNumbers();
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(triggerPreviewUpdate, 300);
     }
 
     function updateLineNumbers() {
-      try {
-        const lines = editor.value.split('\n').length;
-        let numbersHtml = '';
-        for (let i = 1; i <= lines; i++) {
-          numbersHtml += `<div>${i}</div>`;
-        }
-        lineNumbers.innerHTML = numbersHtml;
-        syncScroll();
-      } catch (error) {
-        console.error('Line numbers error:', error);
-      }
+      const lines = editor.value.split('\n').length;
+      lineNumbers.innerHTML = Array.from({ length: lines }, (_, i) => `<div>${i + 1}</div>`).join('');
+      document.getElementById('line-count').textContent = `L${lines}`;
+      syncScroll();
     }
 
-    function syncScroll() {
-      try {
-        lineNumbers.scrollTop = editor.scrollTop;
-      } catch (error) {
-        console.error('Scroll sync error:', error);
-      }
-    }
+    function syncScroll() { lineNumbers.scrollTop = editor.scrollTop; }
 
     function clearEditor() {
-      try {
-        editor.value = `<!DOCTYPE html>
-<html>
-<head>
-  <title>Empty Canvas</title>
-</head>
-<body>
-  <h2>Empty Sandbox Canvas</h2>
-</body>
-</html>`;
-        handleEditorInput();
-        showToast('Workspace reset', 'eraser');
-      } catch (error) {
-        console.error('Clear editor error:', error);
-      }
+      editor.value = `<!DOCTYPE html><html><body><h2>Empty Canvas</h2></body></html>`;
+      handleEditorInput();
+      showToast('Workspace reset', 'eraser');
     }
 
-    // ============================================================================
-    // PREVIEW FUNCTIONS (OPTIMIZED)
-    // ============================================================================
+    // --- Preview ---
     function triggerPreviewUpdate() {
-      try {
-        previewStatus.textContent = 'Rendering...';
-        
-        const isJsEnabled = jsToggle.checked;
-        const code = editor.value.trim();
-
-        if (!code) {
-          previewStatus.textContent = 'Empty code';
-          return;
-        }
-
-        // Configure sandbox based on JS toggle
-        if (isJsEnabled) {
-          previewFrame.setAttribute('sandbox', 'allow-scripts allow-same-origin');
-        } else {
-          previewFrame.setAttribute('sandbox', 'allow-same-origin');
-        }
-
-        // Use requestAnimationFrame for smooth rendering
-        requestAnimationFrame(() => {
+      const code = editor.value.trim();
+      if (!code) return;
+      previewStatus.textContent = 'Rendering...';
+      const sandbox = jsToggle.checked ? 'allow-scripts allow-same-origin' : 'allow-same-origin';
+      previewFrame.setAttribute('sandbox', sandbox);
+      
+      requestAnimationFrame(() => {
+        previewFrame.srcdoc = code;
+        previewFrame.onload = () => {
           try {
-            previewFrame.srcdoc = code;
-            
-            // Set up iframe console capture
-            previewFrame.onload = () => {
-              try {
-                if (previewFrame.contentWindow) {
-                  // Capture console logs from iframe
-                  const iframeConsole = previewFrame.contentWindow.console;
-                  const originalLog = iframeConsole.log;
-                  const originalError = iframeConsole.error;
-                  const originalWarn = iframeConsole.warn;
-
-                  iframeConsole.log = function(...args) {
-                    originalLog.apply(iframeConsole, args);
-                    addLog('log', args);
-                  };
-                  iframeConsole.error = function(...args) {
-                    originalError.apply(iframeConsole, args);
-                    addLog('error', args);
-                  };
-                  iframeConsole.warn = function(...args) {
-                    originalWarn.apply(iframeConsole, args);
-                    addLog('warn', args);
-                  };
-
-                  previewStatus.textContent = 'Live ✓';
-                }
-              } catch (e) {
-                previewStatus.textContent = 'Rendered (console blocked)';
-              }
-            };
-          } catch (error) {
-            previewStatus.textContent = 'Render error';
-            console.error('Preview render error:', error);
-            addLog('error', ['Preview error: ' + error.message]);
-          }
-        });
-      } catch (error) {
-        console.error('Preview update error:', error);
-        previewStatus.textContent = 'Error';
-        addLog('error', ['Update error: ' + error.message]);
-      }
-    }
-
-    function toggleJsExecution() {
-      try {
-        triggerPreviewUpdate();
-        showToast(jsToggle.checked ? 'JavaScript enabled' : 'JavaScript blocked', 'shield');
-      } catch (error) {
-        console.error('JS toggle error:', error);
-      }
-    }
-
-    // ============================================================================
-    // CONSOLE LOGGING
-    // ============================================================================
-    function addLog(type, args) {
-      try {
-        const logDiv = document.createElement('div');
-        logDiv.className = type === 'error' ? 'text-red-400' : type === 'warn' ? 'text-yellow-400' : 'text-green-400';
-        
-        const message = args.map(arg => {
-          if (typeof arg === 'object') {
-            try {
-              return JSON.stringify(arg);
-            } catch {
-              return String(arg);
+            const win = previewFrame.contentWindow;
+            if (win) {
+              win.console.log = (...args) => addLog('log', args);
+              win.console.error = (...args) => addLog('error', args);
+              win.console.warn = (...args) => addLog('warn', args);
+              previewStatus.textContent = 'Live ✓';
             }
-          }
-          return String(arg);
-        }).join(' ');
-        
-        logDiv.textContent = `[${type}] ${message}`;
-        consoleLogs.appendChild(logDiv);
-        logCounter++;
-        logCount.textContent = logCounter;
-        
-        // Auto scroll to bottom
-        consoleLogs.parentElement.scrollTop = consoleLogs.parentElement.scrollHeight;
-      } catch (error) {
-        console.error('Logging error:', error);
-      }
+          } catch(e) { previewStatus.textContent = 'Rendered'; }
+        };
+      });
+    }
+
+    function toggleJsExecution() { triggerPreviewUpdate(); showToast(jsToggle.checked ? 'JS Enabled' : 'JS Blocked', 'shield'); }
+
+    // --- Views ---
+    function setWorkspaceView(mode) {
+      const tabs = ['editor', 'preview', 'split'];
+      tabs.forEach(t => {
+        const el = document.getElementById(`view-tab-${t}`);
+        if(el) el.className = "text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white";
+      });
+      document.getElementById(`view-tab-${mode}`).className = "text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
+
+      document.getElementById('panel-editor').classList.toggle('hidden', mode === 'preview');
+      document.getElementById('panel-preview').classList.toggle('hidden', mode === 'editor');
+      workspaceWrapper.className = `flex-1 grid gap-2 sm:gap-3 min-h-0 ${mode === 'split' ? 'grid-cols-2' : 'grid-cols-1'}`;
+      if (mode === 'preview' || mode === 'split') triggerPreviewUpdate();
+    }
+
+    // --- Console ---
+    function addLog(type, args) {
+      const div = document.createElement('div');
+      div.className = type === 'error' ? 'text-red-400' : type === 'warn' ? 'text-yellow-400' : 'text-green-400';
+      div.textContent = `[${type}] ${args.map(a => typeof a === 'object' ? JSON.stringify(a) : a).join(' ')}`;
+      consoleLogs.appendChild(div);
+      logCounter++;
+      logCount.textContent = logCounter;
+      consoleLogs.parentElement.scrollTop = consoleLogs.parentElement.scrollHeight;
     }
 
     function toggleConsole() {
-      try {
-        const panelConsole = document.getElementById('panel-console');
-        const consoleContent = document.getElementById('console-content');
-        const toggleIcon = document.getElementById('console-toggle-icon');
-        consoleIsOpen = !consoleIsOpen;
-
-        if (consoleIsOpen) {
-          panelConsole.classList.remove('h-10');
-          consoleContent.classList.remove('hidden');
-          toggleIcon.style.transform = 'rotate(0deg)';
-        } else {
-          panelConsole.classList.add('h-10');
-          consoleContent.classList.add('hidden');
-          toggleIcon.style.transform = 'rotate(-180deg)';
-        }
-      } catch (error) {
-        console.error('Console toggle error:', error);
-      }
+      const panel = document.getElementById('panel-console');
+      const content = document.getElementById('console-content');
+      const icon = document.getElementById('console-toggle-icon');
+      consoleIsOpen = !consoleIsOpen;
+      panel.classList.toggle('h-8', !consoleIsOpen); panel.classList.toggle('sm:h-10', !consoleIsOpen);
+      panel.classList.toggle('h-auto', consoleIsOpen); panel.classList.toggle('sm:h-auto', consoleIsOpen);
+      content.classList.toggle('hidden', !consoleIsOpen);
+      icon.style.transform = consoleIsOpen ? 'rotate(0deg)' : 'rotate(-180deg)';
     }
 
-    // ============================================================================
-    // TEMPLATE INJECTION
-    // ============================================================================
+    // --- Search & Replace ---
+    function openSearch() { document.getElementById('search-panel').classList.toggle('hidden'); }
+    function closeSearch() { document.getElementById('search-panel').classList.add('hidden'); }
+    function replaceAll() {
+      const find = document.getElementById('search-find').value;
+      const replace = document.getElementById('search-replace').value;
+      if (!find) return;
+      const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+      editor.value = editor.value.replace(regex, replace);
+      handleEditorInput();
+      showToast(`Replaced all "${find}"`, 'check');
+    }
+
+    // --- Minify ---
+    function minifyCode() {
+      let code = editor.value;
+      code = code.replace(/<!--[\s\S]*?-->/g, ''); // Strip comments
+      code = code.replace(/\s*>\s*</g, '><');     // Collapse > <
+      code = code.replace(/\s{2,}/g, ' ');        // Collapse multiple spaces
+      code = code.replace(/\n\s*/g, '');          // Remove newlines
+      editor.value = code.trim();
+      handleEditorInput();
+      showToast('Code Minified!', 'compress');
+    }
+
+    // --- Presets ---
     function injectPreset(type) {
-      try {
-        if (type === 'counter') {
-          editor.value = defaultTemplate;
-        } else if (type === 'tailwind') {
-          editor.value = tailwindTemplate;
-        }
-        
-        handleEditorInput();
-        showToast('Template injected!', 'bolt');
-      } catch (error) {
-        console.error('Template injection error:', error);
-      }
+      if (type === 'counter') editor.value = defaultTemplate;
+      else if (type === 'tailwind') editor.value = tailwindTemplate;
+      else return;
+      handleEditorInput();
+      showToast('Template Injected!', 'bolt');
     }
 
-    // ============================================================================
-    // FILE UPLOAD
-    // ============================================================================
-    function handleFileUpload(event) {
-      try {
-        const file = event.target.files[0];
-        if (!file) return;
-
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          editor.value = e.target.result;
-          handleEditorInput();
-          showToast(`Loaded: ${file.name}`, 'file');
-        };
-        reader.readAsText(file);
-        document.getElementById('file-input').value = '';
-      } catch (error) {
-        console.error('File upload error:', error);
-        showToast('Error loading file', 'alert-circle');
-      }
+    // --- File Handling ---
+    function handleFileUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (ev) => { editor.value = ev.target.result; handleEditorInput(); showToast(`Loaded: ${file.name}`, 'file'); };
+      reader.readAsText(file);
+      e.target.value = '';
     }
 
-    // ============================================================================
-    // CLIPBOARD & DOWNLOAD
-    // ============================================================================
-    function copyCode() {
-      try {
-        const text = editor.value;
-        if (!text) {
-          showToast('Nothing to copy', 'alert-circle');
-          return;
-        }
-
-        navigator.clipboard.writeText(text).then(() => {
-          showToast('Copied to clipboard!', 'copy');
-        }).catch(() => {
-          // Fallback
-          const temp = document.createElement('textarea');
-          temp.value = text;
-          document.body.appendChild(temp);
-          temp.select();
-          document.execCommand('copy');
-          document.body.removeChild(temp);
-          showToast('Copied to clipboard!', 'copy');
-        });
-      } catch (error) {
-        console.error('Copy error:', error);
-        showToast('Copy failed', 'alert-circle');
-      }
-    }
-
+    // --- Download (Custom Filename) ---
     function downloadCode() {
-      try {
-        const text = editor.value;
-        if (!text) {
-          showToast('Nothing to download', 'alert-circle');
-          return;
-        }
-
-        const blob = new Blob([text], { type: 'text/html;charset=utf-8' });
-        const url = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = 'stackfolio_preview.html';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-
-        showToast('File downloaded!', 'download');
-      } catch (error) {
-        console.error('Download error:', error);
-        showToast('Download failed', 'alert-circle');
-      }
+      const name = document.getElementById('filename-input').value.trim() || 'preview';
+      const blob = new Blob([editor.value], { type: 'text/html;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = name.endsWith('.html') ? name : name + '.html';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      showToast(`Downloaded ${link.download}`, 'download');
     }
 
-    // ============================================================================
-    // TOAST NOTIFICATIONS
-    // ============================================================================
-    function showToast(text, iconClass = 'circle-check') {
-      try {
-        const box = document.getElementById('toast-card');
-        const icon = document.getElementById('toast-icon');
-        const textSpan = document.getElementById('toast-text');
-
-        icon.className = `fa-solid fa-${iconClass}`;
-        textSpan.innerText = text;
-
-        box.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
-        window.clearTimeout(window.toastTimer);
-        window.toastTimer = setTimeout(() => {
-          box.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none');
-        }, 2500);
-      } catch (error) {
-        console.error('Toast error:', error);
-      }
+    // --- Toast ---
+    function showToast(text, icon = 'circle-check') {
+      const box = document.getElementById('toast-card');
+      document.getElementById('toast-icon').className = `fa-solid fa-${icon} text-base sm:text-lg`;
+      document.getElementById('toast-text').innerText = text;
+      box.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      clearTimeout(window.toastTimer);
+      window.toastTimer = setTimeout(() => box.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 2500);
     }
+
+    // Expose to inline buttons
+    window.setWorkspaceView = setWorkspaceView;
+    window.toggleJsExecution = toggleJsExecution;
+    window.clearEditor = clearEditor;
+    window.toggleConsole = toggleConsole;
+    window.openSearch = openSearch;
+    window.closeSearch = closeSearch;
+    window.replaceAll = replaceAll;
+    window.minifyCode = minifyCode;
+    window.injectPreset = injectPreset;
+    window.handleFileUpload = handleFileUpload;
+    window.downloadCode = downloadCode;
+    window.showToast = showToast;
+
+    // Resize handler
+    window.addEventListener('resize', () => {
+      if (window.innerWidth < 768 && document.getElementById('view-tab-split')) {
+        document.getElementById('view-tab-split').style.display = 'none';
+      }
+    });
   </script>
 </body>
 </html>
