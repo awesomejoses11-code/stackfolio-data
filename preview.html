@@ -142,12 +142,19 @@
     </div>
   </header>
 
-  <!-- SEARCH & REPLACE PANEL -->
+  <!-- SEARCH & REPLACE PANEL (Reworked) -->
   <div id="search-panel" class="hidden bg-[#0a1129] border-b border-white/5 p-2 sm:p-3 flex flex-wrap items-center gap-2 shrink-0 search-panel-mobile">
-    <input id="search-find" placeholder="Find..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[80px]" />
-    <input id="search-replace" placeholder="Replace with..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[80px]" />
-    <button onclick="replaceAll()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded text-xs transition-all">Replace All</button>
-    <button onclick="closeSearch()" class="text-slate-500 hover:text-white text-xs px-2">✕</button>
+    <!-- Find Row -->
+    <div class="flex flex-1 gap-2 min-w-[120px]">
+      <input id="search-find" placeholder="Find..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[60px]" />
+      <button onclick="findMatches()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-1.5 rounded text-xs transition-all whitespace-nowrap">Find</button>
+    </div>
+    <!-- Replace Row -->
+    <div class="flex flex-1 gap-2 min-w-[120px]">
+      <input id="search-replace" placeholder="Replace with..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[60px]" />
+      <button onclick="replaceAll()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded text-xs transition-all whitespace-nowrap">Replace All</button>
+      <button onclick="closeSearch()" class="text-slate-500 hover:text-white text-xs px-2">✕</button>
+    </div>
   </div>
 
   <!-- VIEW MODE TABS -->
@@ -210,7 +217,7 @@
 
     </div>
 
-    <!-- CONSOLE PANEL -->
+    <!-- CONSOLE PANEL (Enhanced) -->
     <div id="panel-console" class="bg-[#080d20] border border-white/5 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 h-8 sm:h-10 shrink-0">
       <div onclick="toggleConsole()" class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center cursor-pointer select-none">
         <div class="flex items-center gap-2 sm:gap-3">
@@ -220,6 +227,7 @@
           <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold">
             <span id="log-count">0</span>
           </span>
+          <button onclick="clearConsole()" class="text-[9px] text-slate-500 hover:text-white ml-1 px-1.5 py-0.5 rounded bg-black/20 border border-white/5 transition-colors">Clear</button>
         </div>
         <i class="fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform" id="console-toggle-icon"></i>
       </div>
@@ -288,7 +296,6 @@
       editor.addEventListener('scroll', syncScroll);
       updateLineNumbers();
       setTimeout(() => triggerPreviewUpdate(), 150);
-      // Hide split tab on mobile
       if (window.innerWidth < 768) document.getElementById('view-tab-split').style.display = 'none';
     });
 
@@ -314,7 +321,7 @@
       showToast('Workspace reset', 'eraser');
     }
 
-    // --- Preview ---
+    // --- Preview (Enhanced with Deep Error & Console Sensitivity) ---
     function triggerPreviewUpdate() {
       const code = editor.value.trim();
       if (!code) return;
@@ -322,21 +329,62 @@
       const sandbox = jsToggle.checked ? 'allow-scripts allow-same-origin' : 'allow-same-origin';
       previewFrame.setAttribute('sandbox', sandbox);
       
+      // Inject a hyper-sensitive error interceptor to catch syntax errors, runtime errors, and override console
+      let interceptedCode = code;
+      const interceptorScript = `
+        <!-- interceptor -->
+        <script>
+          // Capture Global Runtime Errors & Syntax Errors
+          window.onerror = function(message, source, lineno, colno, error) {
+              parent.postMessage({ type: 'console', method: 'error', args: ['\u26a0 Syntax/Global Error: ' + message + ' (Line ' + lineno + ')'] }, '*');
+              return false;
+          };
+          window.addEventListener('unhandledrejection', function(e) {
+              parent.postMessage({ type: 'console', method: 'error', args: ['\u26a0 Unhandled Promise Rejection: ' + e.reason] }, '*');
+          });
+
+          // Override console methods to pipe to parent
+          const origLog = console.log;
+          const origError = console.error;
+          const origWarn = console.warn;
+          const origInfo = console.info;
+
+          console.log = function(...args) { origLog.apply(console, args); parent.postMessage({ type: 'console', method: 'log', args: args.map(a => String(a)) }, '*'); };
+          console.error = function(...args) { origError.apply(console, args); parent.postMessage({ type: 'console', method: 'error', args: args.map(a => String(a)) }, '*'); };
+          console.warn = function(...args) { origWarn.apply(console, args); parent.postMessage({ type: 'console', method: 'warn', args: args.map(a => String(a)) }, '*'); };
+          console.info = function(...args) { origInfo.apply(console, args); parent.postMessage({ type: 'console', method: 'log', args: ['[Info] ' + args.map(a => String(a)).join(' ')] }, '*'); };
+        <\/script>
+      `;
+      // Inject it safely before closing </body>, or at the end if no body
+      if (interceptedCode.includes('</body>')) {
+        interceptedCode = interceptedCode.replace('</body>', interceptorScript + '</body>');
+      } else {
+        interceptedCode += interceptorScript;
+      }
+
       requestAnimationFrame(() => {
-        previewFrame.srcdoc = code;
+        previewFrame.srcdoc = interceptedCode;
         previewFrame.onload = () => {
           try {
             const win = previewFrame.contentWindow;
             if (win) {
-              win.console.log = (...args) => addLog('log', args);
-              win.console.error = (...args) => addLog('error', args);
-              win.console.warn = (...args) => addLog('warn', args);
+              // We already overrode console in the script above. 
+              // Don't override it twice, just update status.
               previewStatus.textContent = 'Live ✓';
             }
-          } catch(e) { previewStatus.textContent = 'Rendered'; }
+          } catch(e) { 
+            previewStatus.textContent = 'Rendered (blocked)'; 
+          }
         };
       });
     }
+
+    // --- Listen for Error/Console messages from the iframe ---
+    window.addEventListener('message', (e) => {
+      if (e.data && e.data.type === 'console') {
+        addLog(e.data.method, e.data.args);
+      }
+    });
 
     function toggleJsExecution() { triggerPreviewUpdate(); showToast(jsToggle.checked ? 'JS Enabled' : 'JS Blocked', 'shield'); }
 
@@ -355,7 +403,7 @@
       if (mode === 'preview' || mode === 'split') triggerPreviewUpdate();
     }
 
-    // --- Console ---
+    // --- Console (Made more sensitive & clearable) ---
     function addLog(type, args) {
       const div = document.createElement('div');
       div.className = type === 'error' ? 'text-red-400' : type === 'warn' ? 'text-yellow-400' : 'text-green-400';
@@ -364,6 +412,12 @@
       logCounter++;
       logCount.textContent = logCounter;
       consoleLogs.parentElement.scrollTop = consoleLogs.parentElement.scrollHeight;
+    }
+
+    function clearConsole() {
+      consoleLogs.innerHTML = '';
+      logCounter = 0;
+      logCount.textContent = '0';
     }
 
     function toggleConsole() {
@@ -377,9 +431,30 @@
       icon.style.transform = consoleIsOpen ? 'rotate(0deg)' : 'rotate(-180deg)';
     }
 
-    // --- Search & Replace ---
+    // --- Search & Replace (Now with pure "Find" support) ---
     function openSearch() { document.getElementById('search-panel').classList.toggle('hidden'); }
     function closeSearch() { document.getElementById('search-panel').classList.add('hidden'); }
+    
+    function findMatches() {
+        const find = document.getElementById('search-find').value;
+        if (!find) return showToast('Enter text to find', 'exclamation');
+        const text = editor.value;
+        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+        const matches = text.match(regex);
+        if (!matches || matches.length === 0) {
+            showToast('No matches found', 'exclamation');
+            return;
+        }
+        // Highlight first occurrence
+        const index = text.indexOf(find);
+        if (index !== -1) {
+            editor.focus();
+            editor.setSelectionRange(index, index + find.length);
+            editor.scrollTop = editor.scrollTop; // Ensure scroll sync
+        }
+        showToast(`Found ${matches.length} matches`, 'check');
+    }
+
     function replaceAll() {
       const find = document.getElementById('search-find').value;
       const replace = document.getElementById('search-replace').value;
@@ -453,12 +528,14 @@
     window.toggleConsole = toggleConsole;
     window.openSearch = openSearch;
     window.closeSearch = closeSearch;
+    window.findMatches = findMatches;
     window.replaceAll = replaceAll;
     window.minifyCode = minifyCode;
     window.injectPreset = injectPreset;
     window.handleFileUpload = handleFileUpload;
     window.downloadCode = downloadCode;
     window.showToast = showToast;
+    window.clearConsole = clearConsole;
 
     // Resize handler
     window.addEventListener('resize', () => {
