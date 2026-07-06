@@ -1,250 +1,647 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
-  <title>StackFolio Mobile Previewer</title>
-  
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-  
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
-    
-    :root {
-      --gold: #FFD700;
-      --deep-blue: #050814;
-      --panel-blue: #0B1126;
-      --border-blue: rgba(255, 215, 0, 0.1);
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Stackfolio Nexus // Hybrid Workspace</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap');
 
-    body {
-      font-family: 'Plus Jakarta Sans', sans-serif;
-      background-color: var(--deep-blue);
-      background-image: radial-gradient(circle at 10% 10%, rgba(255, 215, 0, 0.04) 0%, transparent 40%);
-      color: #F8FAFC;
-      overscroll-behavior: none;
-    }
+  :root {
+    --neon-gold: #FFD700;
+    --neon-gold-dim: #B8860B;
+    --cyber-dark: #07090E;
+    --panel-bg: #0F131C;
+    --panel-bg-2: #0A0D14;
+    --border-muted: rgba(255, 215, 0, 0.08);
+    --border-active: rgba(255, 215, 0, 0.3);
+    --cyan: #00D2FF;
+  }
+  html, body { height: 100%; }
+  body {
+    font-family: 'Inter', sans-serif;
+    background-color: var(--cyber-dark);
+    color: #E2E8F0;
+    overflow: hidden;
+  }
+  .mono { font-family: 'Fira Code', monospace; }
 
-    .editor-container {
-      font-family: 'Fira Code', monospace;
-      font-size: 13px;
-      line-height: 1.6;
-    }
+  .custom-scrollbar::-webkit-scrollbar, #line-numbers::-webkit-scrollbar, #console-logs::-webkit-scrollbar, #code-editor::-webkit-scrollbar { width: 4px; height: 4px; }
+  .custom-scrollbar::-webkit-scrollbar-track, #code-editor::-webkit-scrollbar-track, #console-logs::-webkit-scrollbar-track { background: rgba(0, 0, 0, 0.2); }
+  .custom-scrollbar::-webkit-scrollbar-thumb, #code-editor::-webkit-scrollbar-thumb, #console-logs::-webkit-scrollbar-thumb { background: rgba(255, 215, 0, 0.15); border-radius: 2px; }
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: rgba(255, 215, 0, 0.3); }
 
-    #code-editor {
-      resize: none;
-      white-space: pre;
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-    }
+  /* Top chrome / tab bar */
+  .ws-tab { color: #64748B; border-color: transparent; background: transparent; }
+  .ws-tab.ws-tab-active { color: var(--neon-gold); border-color: var(--neon-gold); background: rgba(255,215,0,0.06); }
+  .ws-tab:hover:not(.ws-tab-active) { color: #CBD5E1; }
 
-    /* Custom Scrollbars */
-    #line-numbers::-webkit-scrollbar, #console-logs::-webkit-scrollbar, #code-editor::-webkit-scrollbar {
-      height: 4px;
-      width: 4px;
-    }
-    #code-editor::-webkit-scrollbar-track, #console-logs::-webkit-scrollbar-track { background: transparent; }
-    #code-editor::-webkit-scrollbar-thumb, #console-logs::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.15);
-      border-radius: 99px;
-    }
+  /* Browser tab layout */
+  #sandbox-viewport { position: absolute; inset: 0; width: 100%; height: 100%; border: none; background: #fff; }
+  #landing-hud { position: absolute; inset: 0; z-index: 20; }
+  #registry-panel {
+    position: fixed; top: 96px; right: 0; height: calc(100vh - 96px - 40px);
+    width: 20rem; max-width: 100vw;
+    background: #0A0D14; border-left: 1px solid rgba(255, 255, 255, 0.05);
+    transform: translateX(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    z-index: 40; display: flex; flex-direction: column;
+  }
+  #registry-panel.open { transform: translateX(0); }
 
-    .glass {
-      background: rgba(11, 17, 38, 0.8);
-      backdrop-filter: blur(12px);
-      border: 1px solid var(--border-blue);
-    }
+  /* Editor container (sandbox tab) */
+  .editor-container { font-family: 'Fira Code', monospace; font-size: 13px; line-height: 1.6; }
+  #code-editor { resize: none; white-space: pre; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .glass { background: rgba(11, 17, 38, 0.55); backdrop-filter: blur(12px); border: 1px solid var(--border-muted); }
 
-    /* Mobile Optimizations */
-    @media (max-width: 640px) {
-      .hide-on-mobile { display: none !important; }
-      .workspace-grid { grid-template-columns: 1fr !important; }
-      #panel-split-tab { display: none !important; }
-      #line-numbers { width: 28px; font-size: 10px; }
-      #code-editor { font-size: 12px; padding: 10px 8px; }
-      .toolbar-icon-btn { width: 38px; height: 38px; font-size: 14px; }
-      .header-compact { padding: 8px; gap: 6px; }
-      .search-panel-mobile { flex-direction: column; gap: 6px; }
-    }
+  /* Toggle switch */
+  .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #1E293B; transition: .3s; border-radius: 34px; border: 1px solid rgba(255, 255, 255, 0.1); }
+  .slider:before { position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+  input:checked + .slider { background-color: var(--neon-gold); }
+  input:checked + .slider:before { transform: translateX(18px); background-color: #050814; }
 
-    /* Toggle Switch */
-    .switch { position: relative; display: inline-block; width: 38px; height: 20px; }
-    .switch input { opacity: 0; width: 0; height: 0; }
-    .slider {
-      position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-      background-color: #1E293B; transition: .3s; border-radius: 34px; border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-    .slider:before {
-      position: absolute; content: ""; height: 12px; width: 12px; left: 3px; bottom: 3px;
-      background-color: white; transition: .3s; border-radius: 50%;
-    }
-    input:checked + .slider { background-color: var(--gold); }
-    input:checked + .slider:before { transform: translateX(18px); background-color: #050814; }
+  #toast-deck, #toast-card { z-index: 999; }
 
-    /* Toast */
-    #toast-card { z-index: 999; }
-  </style>
+  /* Mobile responsiveness */
+  @media (max-width: 640px) {
+    .hide-mobile { display: none !important; }
+    #registry-panel { top: 88px; height: calc(100vh - 88px); width: 100%; }
+    .browser-header { height: 48px !important; padding: 4px 10px !important; }
+    .status-bar { height: 24px !important; font-size: 8px !important; padding: 0 10px !important; }
+    #url-bar { font-size: 11px !important; }
+    .nav-btn { padding: 4px 6px !important; font-size: 10px !important; }
+    .proxy-toggle { font-size: 8px !important; padding: 2px 6px !important; }
+    .workspace-grid { grid-template-columns: 1fr !important; }
+    #view-tab-split { display: none !important; }
+    #line-numbers { width: 28px; font-size: 10px; }
+    #code-editor { font-size: 12px; padding: 10px 8px; }
+    .header-compact { padding: 8px; gap: 6px; }
+    .search-panel-mobile { flex-direction: column; gap: 6px; }
+  }
+</style>
 </head>
-<body class="h-screen flex flex-col justify-between overflow-hidden">
+<body class="h-screen w-screen flex flex-col antialiased overflow-hidden">
 
-  <!-- HEADER -->
-  <header class="p-2 sm:p-3 glass border-b border-white/5 flex flex-wrap justify-between items-center gap-2 z-40 shrink-0 header-compact">
-    <div class="flex items-center gap-2">
-      <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-[#FFD700] to-[#B8860B] flex items-center justify-center text-black font-black shadow-lg shadow-yellow-500/10 text-xs">
-        SF
+  <!-- ============================================================ -->
+  <!-- TOP CHROME: brand + conspicuous workspace tabs               -->
+  <!-- ============================================================ -->
+  <div class="shrink-0 bg-[#0A0D14] border-b border-yellow-500/10 z-50 select-none">
+    <div class="h-12 px-3 sm:px-4 flex items-center justify-between gap-3">
+      <div class="flex items-center gap-2">
+        <div class="w-7 h-7 rounded bg-gradient-to-br from-yellow-400 to-amber-500 flex items-center justify-center shadow-md shrink-0">
+          <i class="fa-solid fa-cube text-slate-950 text-xs"></i>
+        </div>
+        <span class="text-xs font-black uppercase tracking-widest text-yellow-400 font-mono">Stackfolio Nexus</span>
+        <span class="text-[10px] text-slate-500 font-mono hide-mobile">v2</span>
       </div>
-      <div class="hide-on-mobile">
-        <h1 class="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">StackFolio</h1>
-        <p class="text-[11px] font-bold text-[#FFD700] mt-0.5">Live Preview</p>
+      <div class="flex items-center gap-1.5 bg-emerald-500/10 border border-emerald-500/20 px-2 py-1 rounded text-[10px] font-mono text-emerald-400">
+        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block shadow-sm"></span> Ready
       </div>
     </div>
+    <div class="flex items-stretch px-2 gap-1 bg-black/20">
+      <button id="tab-btn-browser" onclick="switchWorkspace('browser')" class="ws-tab ws-tab-active flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-all border-b-2">
+        <i class="fa-solid fa-globe"></i> <span>Browser</span>
+      </button>
+      <button id="tab-btn-sandbox" onclick="switchWorkspace('sandbox')" class="ws-tab flex items-center gap-2 px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-all border-b-2">
+        <i class="fa-solid fa-code"></i> <span>Sandbox</span>
+      </button>
+    </div>
+  </div>
 
-    <div class="flex flex-wrap items-center gap-1.5 sm:gap-3 flex-1 sm:flex-none justify-end">
-      
-      <!-- JS Toggle -->
-      <div class="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hide-on-mobile">
-        <span class="text-[9px] text-slate-400 font-bold tracking-wide uppercase">JS</span>
-        <label class="switch">
-          <input type="checkbox" id="js-toggle" checked onchange="toggleJsExecution()" />
-          <span class="slider"></span>
-        </label>
+  <!-- ============================================================ -->
+  <!-- BROWSER TAB VIEW                                              -->
+  <!-- ============================================================ -->
+  <div id="view-browser" class="flex-1 min-h-0 flex flex-col relative">
+
+    <header class="browser-header bg-[#0A0D14] border-b border-yellow-500/10 h-14 px-3 sm:px-4 flex items-center justify-between gap-2 sm:gap-4 z-30 shrink-0">
+      <div class="flex items-center gap-1 sm:gap-2 text-slate-500 shrink-0">
+        <button id="back-btn" disabled class="nav-btn hover:text-slate-200 disabled:opacity-20 disabled:pointer-events-none transition-colors p-1"><i class="fa-solid fa-arrow-left text-xs"></i></button>
+        <button id="forward-btn" disabled class="nav-btn hover:text-slate-200 disabled:opacity-20 disabled:pointer-events-none transition-colors p-1"><i class="fa-solid fa-arrow-right text-xs"></i></button>
+        <button id="refresh-btn" class="nav-btn hover:text-slate-200 transition-colors p-1"><i class="fa-solid fa-rotate-right text-xs"></i></button>
+        <button id="home-btn" class="nav-btn hover:text-slate-200 transition-colors p-1"><i class="fa-solid fa-house text-xs"></i></button>
       </div>
 
-      <!-- Templates Select (Mobile optimized) -->
-      <select onchange="injectPreset(this.value)" class="bg-black/40 text-slate-300 px-2 py-1.5 rounded border border-white/5 text-[10px] sm:text-xs font-semibold outline-none max-w-[80px] sm:max-w-none">
-        <option value="">Templates</option>
-        <option value="counter">Counter</option>
-        <option value="tailwind">Tailwind</option>
-      </select>
+      <div class="flex-1 flex items-center gap-1 sm:gap-2 bg-[#0E111A] border border-white/5 rounded-md px-2 sm:px-3 py-1 focus-within:border-yellow-500/20 transition-all min-w-0">
+        <i class="fa-solid fa-shield-halved text-cyan-500 text-[10px] shrink-0" id="security-icon"></i>
+        <input type="text" id="url-bar" autocomplete="off" spellcheck="false" placeholder="Enter URL (e.g. github.com, google.com)"
+          class="w-full bg-transparent border-none outline-none text-[11px] sm:text-xs text-slate-300 placeholder-slate-600 font-mono tracking-wide min-w-0" />
+        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0 border-l border-white/5 pl-1.5 sm:pl-2 ml-0.5">
+          <button id="bookmark-btn" class="text-slate-600 hover:text-yellow-400 p-0.5 transition-colors shrink-0"><i class="fa-regular fa-bookmark text-xs"></i></button>
+          <button id="proxy-toggle-btn" class="proxy-toggle text-[9px] sm:text-[10px] font-mono text-slate-500 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 px-1.5 py-0.5 rounded transition-all shrink-0 whitespace-nowrap">
+            <i class="fa-solid fa-route text-[9px] mr-0.5"></i> PROXY_OFF
+          </button>
+        </div>
+      </div>
 
-      <!-- Mobile Toolbar -->
-      <button onclick="openSearch()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
-        <i class="fa-solid fa-magnifying-glass text-[#00D2FF]"></i>
-      </button>
-
-      <button onclick="minifyCode()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
-        <i class="fa-solid fa-compress text-yellow-500"></i>
-      </button>
-
-      <button onclick="document.getElementById('file-input').click()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
-        <i class="fa-solid fa-upload text-[#00D2FF]"></i>
-      </button>
-      
-      <!-- Download -->
-      <div class="flex items-center gap-1.5 bg-black/40 rounded-lg border border-white/5 p-1">
-        <input type="text" id="filename-input" value="preview" class="bg-transparent border-none outline-none text-white text-[10px] sm:text-xs w-14 sm:w-24 px-1.5 font-mono" placeholder="filename" />
-        <button onclick="downloadCode()" class="bg-gradient-to-tr from-[#FFD700] to-[#FDB931] hover:brightness-110 text-[#050814] px-2 sm:px-3 py-1.5 rounded-md font-bold text-[10px] sm:text-xs flex items-center gap-1 transition-all">
-          <i class="fa-solid fa-download"></i>
-          <span class="hide-on-mobile">.html</span>
+      <div class="flex items-center gap-2 shrink-0 select-none">
+        <button id="toggle-registry-btn" class="text-slate-400 hover:text-slate-200 bg-white/5 border border-white/5 hover:border-white/10 px-2 py-1 rounded text-xs transition-all flex items-center gap-1.5">
+          <i class="fa-solid fa-book-bookmark text-[10px]"></i> <span class="text-[10px] sm:text-[11px] font-medium hide-mobile">Registry</span>
         </button>
       </div>
-    </div>
-  </header>
+    </header>
 
-  <!-- SEARCH & REPLACE PANEL (Reworked) -->
-  <div id="search-panel" class="hidden bg-[#0a1129] border-b border-white/5 p-2 sm:p-3 flex flex-wrap items-center gap-2 shrink-0 search-panel-mobile">
-    <!-- Find Row -->
-    <div class="flex flex-1 gap-2 min-w-[120px]">
-      <input id="search-find" placeholder="Find..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[60px]" />
-      <button onclick="findMatches()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-3 py-1.5 rounded text-xs transition-all whitespace-nowrap">Find</button>
-    </div>
-    <!-- Replace Row -->
-    <div class="flex flex-1 gap-2 min-w-[120px]">
-      <input id="search-replace" placeholder="Replace with..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[60px]" />
-      <button onclick="replaceAll()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-3 py-1.5 rounded text-xs transition-all whitespace-nowrap">Replace All</button>
-      <button onclick="closeSearch()" class="text-slate-500 hover:text-white text-xs px-2">✕</button>
-    </div>
-  </div>
-
-  <!-- VIEW MODE TABS -->
-  <div class="bg-[#070b1d] border-b border-white/5 px-3 py-1.5 flex items-center justify-between shrink-0">
-    <div class="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
-      <button onclick="setWorkspaceView('editor')" id="view-tab-editor" class="text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10">
-        <i class="fa-solid fa-code"></i> <span class="hide-on-mobile">Editor</span>
-      </button>
-      <button onclick="setWorkspaceView('preview')" id="view-tab-preview" class="text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white">
-        <i class="fa-solid fa-eye"></i> <span class="hide-on-mobile">Preview</span>
-      </button>
-      <button onclick="setWorkspaceView('split')" id="view-tab-split" class="hidden md:flex text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all items-center gap-1 sm:gap-2 text-slate-400 hover:text-white">
-        <i class="fa-solid fa-columns"></i> Split
-      </button>
+    <div class="status-bar bg-[#0B0E16] border-b border-white/5 h-8 px-4 flex items-center justify-between text-[10px] text-slate-500 font-mono select-none shrink-0">
+      <div class="flex items-center gap-2 truncate">
+        <span class="w-1.5 h-1.5 rounded-full bg-cyan-500 shrink-0"></span>
+        <span id="sandbox-runtime-desc" class="truncate">Environment: Standby Mode</span>
+      </div>
+      <div id="proxy-status-indicator" class="text-[9px] text-slate-600 tracking-wide uppercase shrink-0 hide-mobile">Mode: Native Iframe</div>
     </div>
 
-    <button onclick="clearEditor()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold bg-red-500/10 px-2 py-1 rounded-md">
-      <i class="fa-solid fa-eraser"></i> <span class="hide-on-mobile">Reset</span>
-    </button>
-  </div>
+    <div class="flex-1 relative min-h-0 bg-[#07090E] overflow-hidden">
+      <iframe id="sandbox-viewport" class="hidden" sandbox="allow-scripts allow-same-origin allow-forms allow-popups"></iframe>
 
-  <!-- WORKSPACE -->
-  <main class="flex-1 p-2 sm:p-3 min-h-0 flex flex-col gap-2 sm:gap-3 relative">
-    
-    <div id="workspace-wrapper" class="flex-1 grid grid-cols-1 gap-2 sm:gap-3 min-h-0 workspace-grid">
-      
-      <!-- EDITOR PANEL -->
-      <div id="panel-editor" class="flex flex-col h-full bg-[#080d20] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
-        <div class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
-          <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <i class="fa-solid fa-align-left text-yellow-500 text-xs"></i> 
-            <span class="hide-on-mobile">Source Code</span>
-          </span>
-          <span class="text-[9px] text-slate-500 font-mono" id="line-count"></span>
-        </div>
-
-        <div class="flex-1 flex editor-container overflow-hidden bg-[#040714] text-slate-300">
-          <div id="line-numbers" class="w-10 sm:w-12 py-3 select-none text-right pr-2 sm:pr-3 text-slate-600 font-mono bg-black/20 border-r border-white/5 overflow-hidden text-[10px] sm:text-sm leading-relaxed">
-            <div>1</div>
+      <div id="landing-hud" class="flex flex-col items-center justify-center p-6 bg-[#07090E] text-center overflow-y-auto z-10">
+        <div class="max-w-md w-full space-y-8">
+          <div class="space-y-3">
+            <div class="inline-flex p-3 rounded-md bg-yellow-500/5 border border-yellow-500/10 text-yellow-400/90 mb-1">
+              <i class="fa-solid fa-compass-drafting text-2xl"></i>
+            </div>
+            <h2 class="text-lg font-bold text-white tracking-tight">Hybrid Proxy Terminal</h2>
+            <p class="text-xs text-slate-400 leading-relaxed">Native iframe mode for most sites. Proxy-mode (via srcdoc) bypasses X-Frame-Options to load blocked sites.</p>
           </div>
-          <textarea id="code-editor" autocomplete="off" autofocus spellcheck="false" 
-            class="flex-1 py-3 px-2 sm:px-3 bg-transparent outline-none border-none text-slate-200 resize-none overflow-y-auto leading-relaxed text-[12px] sm:text-sm"
-            placeholder="Start writing your HTML here..."></textarea>
+          <div class="flex gap-2 p-1 bg-[#0E121B] border border-white/5 rounded focus-within:border-yellow-500/20 transition-all shadow-inner">
+            <input type="text" id="landing-url-input" autocomplete="off" spellcheck="false" placeholder="google.com, github.com..."
+              class="flex-1 bg-transparent border-none outline-none px-2.5 text-xs font-mono text-slate-300 placeholder-slate-600" />
+            <button id="mount-sandbox-btn" class="bg-gradient-to-r from-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 text-xs font-semibold px-4 py-2 rounded transition-all">Mount</button>
+          </div>
+          <div class="space-y-2 text-left pt-2">
+            <span class="text-[10px] font-bold uppercase text-slate-500 font-mono tracking-wider block select-none">Quick Paths</span>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button onclick="triggerDirectLoad('https://github.com')" class="p-2.5 rounded bg-[#0F131C] border border-white/5 text-left transition-all hover:border-yellow-500/20 group">
+                <div class="text-xs font-semibold text-slate-300 group-hover:text-yellow-400 transition-colors flex items-center gap-1.5"><i class="fa-brands fa-github text-[10px] text-cyan-500"></i> GitHub</div>
+                <div class="text-[9px] text-slate-600 font-mono truncate mt-0.5">https://github.com</div>
+              </button>
+              <button onclick="triggerDirectLoad('https://google.com')" class="p-2.5 rounded bg-[#0F131C] border border-white/5 text-left transition-all hover:border-yellow-500/20 group">
+                <div class="text-xs font-semibold text-slate-300 group-hover:text-yellow-400 transition-colors flex items-center gap-1.5"><i class="fa-solid fa-arrow-right-arrow-left text-[10px] text-purple-400"></i> Google (Proxy)</div>
+                <div class="text-[9px] text-slate-600 font-mono truncate mt-0.5">https://google.com</div>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- PREVIEW PANEL -->
-      <div id="panel-preview" class="hidden flex flex-col h-full bg-[#080d20] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
-        <div class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
-          <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
-            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-            <span class="hide-on-mobile">Sandbox</span>
-          </span>
-          <span id="preview-status" class="text-[9px] sm:text-[10px] text-slate-500 font-mono">Loading...</span>
+      <!-- Registry slide-out (bookmarks only) -->
+      <div id="registry-panel">
+        <div class="px-3 py-2 bg-black/20 border-b border-white/5 text-[10px] font-bold tracking-wider text-slate-500 uppercase flex items-center gap-1.5 select-none shrink-0">
+          <i class="fa-solid fa-network-wired text-yellow-500/70"></i> Registry
         </div>
-        <div class="flex-1 bg-white relative overflow-hidden">
-          <iframe id="preview-frame" title="Live Preview" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin"></iframe>
-        </div>
+        <div id="bookmarks-container" class="flex-1 overflow-y-auto p-2 space-y-1 custom-scrollbar"></div>
       </div>
-
     </div>
 
-    <!-- CONSOLE PANEL (Enhanced) -->
-    <div id="panel-console" class="bg-[#080d20] border border-white/5 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 h-8 sm:h-10 shrink-0">
-      <div onclick="toggleConsole()" class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center cursor-pointer select-none">
+    <!-- Dedicated Frame Console (collapsible) — intercepted frame communications ONLY -->
+    <div id="browser-console-panel" class="bg-[#0A0D14] border-t border-white/5 shrink-0 flex flex-col transition-all duration-300 h-8 sm:h-9">
+      <div onclick="toggleBrowserConsole()" class="px-3 py-1.5 flex justify-between items-center cursor-pointer select-none shrink-0">
         <div class="flex items-center gap-2 sm:gap-3">
           <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-            <i class="fa-solid fa-terminal text-emerald-400 text-xs"></i> <span class="hide-on-mobile">Console</span>
+            <i class="fa-solid fa-satellite-dish text-cyan-400 text-xs"></i> <span class="hide-mobile">Frame Console</span>
           </span>
-          <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold">
-            <span id="log-count">0</span>
+          <span class="text-[9px] bg-cyan-500/20 text-cyan-300 px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold">
+            <span id="browser-log-count">0</span>
           </span>
-          <button onclick="clearConsole()" class="text-[9px] text-slate-500 hover:text-white ml-1 px-1.5 py-0.5 rounded bg-black/20 border border-white/5 transition-colors">Clear</button>
+          <button onclick="event.stopPropagation(); clearBrowserConsole()" class="text-[9px] text-slate-500 hover:text-white ml-1 px-1.5 py-0.5 rounded bg-black/20 border border-white/5 transition-colors">Clear</button>
         </div>
-        <i class="fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform" id="console-toggle-icon"></i>
+        <i class="fa-solid fa-chevron-up text-slate-500 text-[10px] transition-transform" id="browser-console-toggle-icon"></i>
       </div>
-      <div id="console-content" class="overflow-y-auto flex-1 bg-black/30 p-2 hidden">
-        <div id="console-logs" class="space-y-1 font-mono text-[10px] sm:text-xs"></div>
+      <div id="browser-console-content" class="overflow-y-auto flex-1 custom-scrollbar p-2 hidden" style="max-height: 38vh;">
+        <div id="browser-console-logs" class="space-y-2 font-mono text-[10px] bg-black/10 rounded p-2">
+          <div class="text-slate-600 italic select-none">Awaiting intercepted frame communications...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Signature-style modal removed (mock TON transaction flow) -->
+
+  <div id="toast-deck" class="fixed bottom-4 right-4 bg-[#0A0D14] border border-yellow-500/20 px-4 py-2.5 rounded shadow-2xl flex items-center gap-2.5 translate-y-20 opacity-0 pointer-events-none transition-all duration-200 z-50">
+    <i id="toast-deck-icon" class="fa-solid fa-circle-check text-yellow-400 text-xs"></i>
+    <span id="toast-deck-text" class="text-xs font-medium tracking-wide text-slate-300">Operation Logged</span>
+  </div>
+
+  <!-- ============================================================ -->
+  <!-- SANDBOX TAB VIEW                                              -->
+  <!-- ============================================================ -->
+  <div id="view-sandbox" class="flex-1 min-h-0 hidden flex-col">
+
+    <header class="p-2 sm:p-3 glass border-b border-white/5 flex flex-wrap justify-between items-center gap-2 z-30 shrink-0 header-compact">
+      <div class="flex items-center gap-2">
+        <div class="hide-mobile">
+          <p class="text-[11px] font-bold text-[#FFD700] mt-0.5">Local Sandbox</p>
+        </div>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-1.5 sm:gap-3 flex-1 sm:flex-none justify-end">
+        <div class="flex items-center gap-1.5 bg-black/40 px-2 py-1 rounded-lg border border-white/5 hide-mobile">
+          <span class="text-[9px] text-slate-400 font-bold tracking-wide uppercase">JS</span>
+          <label class="switch">
+            <input type="checkbox" id="js-toggle" checked onchange="toggleJsExecution()" />
+            <span class="slider"></span>
+          </label>
+        </div>
+
+        <select onchange="injectPreset(this.value)" class="bg-black/40 text-slate-300 px-2 py-1.5 rounded border border-white/5 text-[10px] sm:text-xs font-semibold outline-none max-w-[80px] sm:max-w-none">
+          <option value="">Templates</option>
+          <option value="counter">Counter</option>
+          <option value="tailwind">Tailwind</option>
+        </select>
+
+        <button onclick="openSearch()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
+          <i class="fa-solid fa-magnifying-glass text-[#00D2FF]"></i>
+        </button>
+
+        <button onclick="minifyCode()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
+          <i class="fa-solid fa-compress text-yellow-500"></i>
+        </button>
+
+        <button onclick="document.getElementById('file-input').click()" class="toolbar-icon-btn w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-white/5 hover:bg-white/10 border border-white/5 flex items-center justify-center text-slate-300 text-xs">
+          <i class="fa-solid fa-upload text-[#00D2FF]"></i>
+        </button>
+
+        <div class="flex items-center gap-1.5 bg-black/40 rounded-lg border border-white/5 p-1">
+          <input type="text" id="filename-input" value="preview" class="bg-transparent border-none outline-none text-white text-[10px] sm:text-xs w-14 sm:w-24 px-1.5 font-mono" placeholder="filename" />
+          <button onclick="downloadCode()" class="bg-gradient-to-tr from-[#FFD700] to-[#FDB931] hover:brightness-110 text-[#050814] px-2 sm:px-3 py-1.5 rounded-md font-bold text-[10px] sm:text-xs flex items-center gap-1 transition-all">
+            <i class="fa-solid fa-download"></i>
+            <span class="hide-mobile">.html</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- SEARCH & REPLACE PANEL — robust multi-match version -->
+    <div id="search-panel" class="hidden bg-[#0a1129] border-b border-white/5 p-2 sm:p-3 flex flex-wrap items-center gap-2 shrink-0 search-panel-mobile">
+      <div class="flex flex-1 gap-2 min-w-[160px] items-center">
+        <input id="search-find" oninput="onSearchInputChange()" placeholder="Find..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[60px]" />
+        <span id="search-match-counter" class="text-[10px] font-mono text-slate-400 whitespace-nowrap px-1 select-none">0/0</span>
+        <button onclick="findPrev()" title="Previous match" class="bg-black/40 hover:bg-black/60 border border-white/10 text-slate-300 px-2 py-1.5 rounded text-xs transition-all"><i class="fa-solid fa-chevron-up"></i></button>
+        <button onclick="findNext()" title="Next match" class="bg-cyan-600 hover:bg-cyan-700 text-white font-bold px-2.5 py-1.5 rounded text-xs transition-all whitespace-nowrap"><i class="fa-solid fa-chevron-down"></i> Find</button>
+      </div>
+      <div class="flex flex-1 gap-2 min-w-[160px] items-center">
+        <input id="search-replace" placeholder="Replace with..." class="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 text-xs text-white outline-none min-w-[60px]" />
+        <button onclick="replaceCurrent()" title="Replace current match only" class="bg-indigo-500 hover:bg-indigo-600 text-white font-bold px-2.5 py-1.5 rounded text-xs transition-all whitespace-nowrap">Replace</button>
+        <button onclick="replaceAll()" title="Replace every match" class="bg-indigo-700 hover:bg-indigo-800 text-white font-bold px-2.5 py-1.5 rounded text-xs transition-all whitespace-nowrap">All</button>
+      </div>
+      <div class="flex items-center gap-3 shrink-0">
+        <label class="flex items-center gap-1 text-[10px] text-slate-400 font-mono select-none cursor-pointer" title="Treat Find as a regular expression">
+          <input type="checkbox" id="search-regex-toggle" onchange="onSearchInputChange()" class="accent-yellow-500" /> .*
+        </label>
+        <label class="flex items-center gap-1 text-[10px] text-slate-400 font-mono select-none cursor-pointer" title="Match case">
+          <input type="checkbox" id="search-case-toggle" onchange="onSearchInputChange()" class="accent-yellow-500" /> Aa
+        </label>
+        <button onclick="closeSearch()" class="text-slate-500 hover:text-white text-xs px-2">✕</button>
       </div>
     </div>
 
-  </main>
+    <!-- VIEW MODE TABS -->
+    <div class="bg-[#070b1d] border-b border-white/5 px-3 py-1.5 flex items-center justify-between shrink-0">
+      <div class="flex gap-1.5 bg-black/30 p-1 rounded-xl border border-white/5">
+        <button onclick="setWorkspaceView('editor')" id="view-tab-editor" class="text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10">
+          <i class="fa-solid fa-code"></i> <span class="hide-mobile">Editor</span>
+        </button>
+        <button onclick="setWorkspaceView('preview')" id="view-tab-preview" class="text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white">
+          <i class="fa-solid fa-eye"></i> <span class="hide-mobile">Preview</span>
+        </button>
+        <button onclick="setWorkspaceView('split')" id="view-tab-split" class="hidden md:flex text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all items-center gap-1 sm:gap-2 text-slate-400 hover:text-white">
+          <i class="fa-solid fa-columns"></i> Split
+        </button>
+      </div>
 
-  <input type="file" id="file-input" class="hidden" accept=".html,.htm" onchange="handleFileUpload(event)" />
+      <button onclick="clearEditor()" class="text-[10px] text-red-400 hover:text-red-300 transition-colors flex items-center gap-1 font-bold bg-red-500/10 px-2 py-1 rounded-md">
+        <i class="fa-solid fa-eraser"></i> <span class="hide-mobile">Reset</span>
+      </button>
+    </div>
 
-  <div id="toast-card" class="fixed bottom-4 left-4 right-4 sm:left-6 sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50">
-    <i id="toast-icon" class="fa-solid fa-circle-check text-base sm:text-lg"></i>
-    <span id="toast-text" class="text-sm font-semibold">Done!</span>
+    <!-- WORKSPACE -->
+    <main class="flex-1 p-2 sm:p-3 min-h-0 flex flex-col gap-2 sm:gap-3 relative">
+
+      <div id="workspace-wrapper" class="flex-1 grid grid-cols-1 gap-2 sm:gap-3 min-h-0 workspace-grid">
+
+        <!-- EDITOR PANEL -->
+        <div id="panel-editor" class="flex flex-col h-full bg-[#080d20] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
+          <div class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <i class="fa-solid fa-align-left text-yellow-500 text-xs"></i>
+              <span class="hide-mobile">Source Code</span>
+            </span>
+            <span class="text-[9px] text-slate-500 font-mono" id="line-count"></span>
+          </div>
+
+          <div class="flex-1 flex editor-container overflow-hidden bg-[#040714] text-slate-300">
+            <div id="line-numbers" class="w-10 sm:w-12 py-3 select-none text-right pr-2 sm:pr-3 text-slate-600 font-mono bg-black/20 border-r border-white/5 overflow-hidden text-[10px] sm:text-sm leading-relaxed">
+              <div>1</div>
+            </div>
+            <textarea id="code-editor" autocomplete="off" spellcheck="false"
+              class="flex-1 py-3 px-2 sm:px-3 bg-transparent outline-none border-none text-slate-200 resize-none overflow-y-auto leading-relaxed text-[12px] sm:text-sm"
+              placeholder="Start writing your HTML here..."></textarea>
+          </div>
+        </div>
+
+        <!-- PREVIEW PANEL -->
+        <div id="panel-preview" class="hidden flex flex-col h-full bg-[#080d20] border border-white/5 rounded-xl sm:rounded-2xl overflow-hidden shadow-2xl">
+          <div class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center shrink-0">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+              <span class="hide-mobile">Sandbox</span>
+            </span>
+            <span id="preview-status" class="text-[9px] sm:text-[10px] text-slate-500 font-mono">Loading...</span>
+          </div>
+          <div class="flex-1 bg-white relative overflow-hidden">
+            <iframe id="preview-frame" title="Live Preview" class="w-full h-full border-none bg-white" sandbox="allow-scripts allow-same-origin"></iframe>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Dedicated Sandbox Console — local sandboxed HTML script logs ONLY -->
+      <div id="panel-console" class="bg-[#080d20] border border-white/5 rounded-lg sm:rounded-xl overflow-hidden shadow-2xl flex flex-col transition-all duration-300 h-8 sm:h-10 shrink-0">
+        <div onclick="toggleConsole()" class="px-3 py-1.5 bg-[#0a1129] border-b border-white/5 flex justify-between items-center cursor-pointer select-none">
+          <div class="flex items-center gap-2 sm:gap-3">
+            <span class="text-[10px] sm:text-[11px] font-extrabold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-terminal text-emerald-400 text-xs"></i> <span class="hide-mobile">Sandbox Console</span>
+            </span>
+            <span class="text-[9px] bg-emerald-500/20 text-emerald-300 px-1.5 sm:px-2 py-0.5 rounded font-mono font-bold">
+              <span id="log-count">0</span>
+            </span>
+            <button onclick="event.stopPropagation(); clearConsole()" class="text-[9px] text-slate-500 hover:text-white ml-1 px-1.5 py-0.5 rounded bg-black/20 border border-white/5 transition-colors">Clear</button>
+          </div>
+          <i class="fa-solid fa-chevron-down text-slate-500 text-[10px] transition-transform" id="console-toggle-icon"></i>
+        </div>
+        <div id="console-content" class="overflow-y-auto flex-1 bg-black/30 p-2 hidden">
+          <div id="console-logs" class="space-y-1 font-mono text-[10px] sm:text-xs"></div>
+        </div>
+      </div>
+
+    </main>
+
+    <input type="file" id="file-input" class="hidden" accept=".html,.htm" onchange="handleFileUpload(event)" />
+
+    <div id="toast-card" class="fixed bottom-4 left-4 right-4 sm:left-6 sm:w-auto bg-gradient-to-r from-emerald-500 to-teal-600 text-white px-4 py-2.5 rounded-xl shadow-2xl flex items-center gap-3 translate-y-20 opacity-0 pointer-events-none transition-all duration-300 z-50">
+      <i id="toast-icon" class="fa-solid fa-circle-check text-base sm:text-lg"></i>
+      <span id="toast-text" class="text-sm font-semibold">Done!</span>
+    </div>
   </div>
 
+  <!-- ============================================================ -->
+  <!-- TAB SWITCHER                                                  -->
+  <!-- ============================================================ -->
+  <script>
+    function switchWorkspace(which) {
+      const isBrowser = which === 'browser';
+      const viewBrowser = document.getElementById('view-browser');
+      const viewSandbox = document.getElementById('view-sandbox');
+      viewBrowser.classList.toggle('hidden', !isBrowser);
+      viewBrowser.classList.toggle('flex', isBrowser);
+      viewSandbox.classList.toggle('hidden', isBrowser);
+      viewSandbox.classList.toggle('flex', !isBrowser);
+      document.getElementById('tab-btn-browser').classList.toggle('ws-tab-active', isBrowser);
+      document.getElementById('tab-btn-sandbox').classList.toggle('ws-tab-active', !isBrowser);
+    }
+  </script>
+
+  <!-- ============================================================ -->
+  <!-- BROWSER TAB LOGIC                                             -->
+  <!-- ============================================================ -->
+  <script>
+    // ==========================================================
+    // 1. HYBRID PROXY LOGIC (Bypasses X-Frame-Options)
+    // ==========================================================
+    let proxyMode = false;
+    const proxyToggleBtn = document.getElementById('proxy-toggle-btn');
+    const proxyStatusIndicator = document.getElementById('proxy-status-indicator');
+
+    proxyToggleBtn.addEventListener('click', () => {
+      proxyMode = !proxyMode;
+      proxyToggleBtn.innerHTML = proxyMode
+        ? `<i class="fa-solid fa-route text-[9px] mr-0.5"></i> PROXY_ON`
+        : `<i class="fa-solid fa-route text-[9px] mr-0.5"></i> PROXY_OFF`;
+      proxyToggleBtn.className = proxyMode
+        ? `proxy-toggle text-[9px] sm:text-[10px] font-mono text-cyan-400 border border-cyan-500/30 px-1.5 py-0.5 rounded transition-all shrink-0 whitespace-nowrap`
+        : `proxy-toggle text-[9px] sm:text-[10px] font-mono text-slate-500 hover:text-cyan-400 border border-white/5 hover:border-cyan-500/30 px-1.5 py-0.5 rounded transition-all shrink-0 whitespace-nowrap`;
+      proxyStatusIndicator.textContent = `Mode: ${proxyMode ? 'SRCDOC Proxy' : 'Native Iframe'}`;
+
+      if (sandboxViewport.src && !sandboxViewport.src.includes('about:blank')) {
+        executeManifestLoad(sandboxViewport.src);
+      }
+      triggerToastBanner(`Switched to ${proxyMode ? 'Proxy' : 'Native'} mode`, 'rotate');
+    });
+
+    async function loadViaProxy(url) {
+      logFrameConsole("proxy_route", `Fetching via CORS proxy: ${url}`);
+      const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+      try {
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error(`Proxy HTTP ${res.status}`);
+        let html = await res.text();
+
+        if (html.includes('reCAPTCHA') || html.includes('unusual traffic') || html.includes('ERROR for site owner')) {
+          logFrameConsole("proxy_blocked", "Target site blocked proxy request (Cloudflare/Captcha).");
+          sandboxViewport.srcdoc = `
+            <html><body style="font-family:sans-serif;background:#0F131C;color:white;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:20px;text-align:center;padding:20px;">
+              <i class="fa-solid fa-shield-halved" style="font-size:4rem;color:#e94560;"></i>
+              <h2 style="color:#e94560;margin:0;">Proxy Request Blocked</h2>
+              <p style="color:#94A3B8;max-width:400px;">The proxy server (AllOrigins) was blocked by the target site's security (Cloudflare/reCAPTCHA).</p>
+              <button onclick="window.open('${url}', '_blank')" style="background:#FFD700;color:#0F131C;border:none;padding:12px 24px;border-radius:8px;font-weight:bold;cursor:pointer;font-size:16px;box-shadow:0 0 10px rgba(255,215,0,0.2);">OPEN IN NEW TAB</button>
+            </body></html>
+          `;
+          sandboxRuntimeDesc.textContent = `[PROXY] Blocked by ${url.substring(0,30)}...`;
+          return;
+        }
+
+        // Real console/error relay bridge — forwards messages from the proxied frame
+        // to the Frame Console (replaces the old mock TON provider injection).
+        const injectionScript = `
+        <script>
+        (function(){
+          function relay(method, args){
+            try {
+              window.parent.postMessage({ __neon_frame_log: true, method: method, args: args.map(function(a){ return typeof a === 'object' ? JSON.stringify(a) : String(a); }) }, '*');
+            } catch(e) {}
+          }
+          ['log','warn','error','info'].forEach(function(m){
+            var orig = console[m];
+            console[m] = function(){ relay(m, Array.prototype.slice.call(arguments)); orig.apply(console, arguments); };
+          });
+          window.addEventListener('error', function(e){ relay('error', ['Uncaught: ' + e.message + ' (line ' + e.lineno + ')']); });
+          window.addEventListener('unhandledrejection', function(e){ relay('error', ['Unhandled rejection: ' + e.reason]); });
+        })();
+        <\/script>`;
+
+        if (html.includes('</body>')) html = html.replace('</body>', injectionScript + '</body>');
+        else html += injectionScript;
+
+        sandboxViewport.src = 'about:blank';
+        sandboxViewport.srcdoc = html;
+        sandboxViewport.classList.remove('hidden');
+        sandboxRuntimeDesc.textContent = `[PROXY] ${url.substring(0, 40)}...`;
+        securityIcon.className = "fa-solid fa-shield-halved text-amber-500 text-[10px]";
+        logFrameConsole("proxy_success", "Rendered via srcdoc bypass");
+      } catch (e) {
+        logFrameConsole("proxy_failed", `CORS proxy error: ${e.message}`);
+        triggerToastBanner("Proxy fetch failed. Fallback to standard iframe.", "xmark text-rose-500");
+        sandboxViewport.srcdoc = '';
+        sandboxViewport.src = url;
+      }
+    }
+
+    // ==========================================================
+    // 2. SMART DISPATCH ENGINE (Native vs. Proxy)
+    // ==========================================================
+    const urlBar = document.getElementById('url-bar');
+    const landingUrlInput = document.getElementById('landing-url-input');
+    const sandboxViewport = document.getElementById('sandbox-viewport');
+    const landingHud = document.getElementById('landing-hud');
+    const securityIcon = document.getElementById('security-icon');
+    const sandboxRuntimeDesc = document.getElementById('sandbox-runtime-desc');
+    const frameConsoleLogs = document.getElementById('browser-console-logs');
+    const browserLogCountEl = document.getElementById('browser-log-count');
+    let browserLogCounter = 0;
+
+    let historyRecords = [];
+    let forwardRecords = [];
+    let directoryMappings = JSON.parse(localStorage.getItem('neon_nexus_directory')) || [
+      { name: "GitHub", url: "https://github.com" },
+      { name: "Wikipedia", url: "https://wikipedia.org" }
+    ];
+
+    const backBtn = document.getElementById('back-btn');
+    const forwardBtn = document.getElementById('forward-btn');
+    const refreshBtn = document.getElementById('refresh-btn');
+    const homeBtn = document.getElementById('home-btn');
+    const bookmarkBtn = document.getElementById('bookmark-btn');
+    const toggleRegistryBtn = document.getElementById('toggle-registry-btn');
+    const registryPanel = document.getElementById('registry-panel');
+    const mountSandboxBtn = document.getElementById('mount-sandbox-btn');
+
+    function executeManifestLoad(input) {
+      let sanitized = input.trim();
+      if (!sanitized) return;
+      if (!sanitized.includes('.') || sanitized.includes(' ')) {
+        sanitized = `https://www.google.com/search?q=${encodeURIComponent(sanitized)}`;
+      } else if (!/^https?:\/\//i.test(sanitized)) {
+        sanitized = `https://${sanitized}`;
+      }
+      dispatchSandboxFrame(sanitized);
+    }
+
+    function dispatchSandboxFrame(destinationUrl, bypassHistorySync = false) {
+      sandboxRuntimeDesc.textContent = "Connecting Gateway...";
+
+      if (!bypassHistorySync && sandboxViewport.src && sandboxViewport.src !== 'about:blank' && sandboxViewport.src !== window.location.href) {
+        historyRecords.push(sandboxViewport.src);
+        forwardRecords = [];
+      }
+
+      urlBar.value = destinationUrl;
+      landingUrlInput.value = destinationUrl;
+      landingHud.classList.add('pointer-events-none', 'opacity-0');
+      setTimeout(() => { landingHud.classList.add('hidden'); }, 200);
+
+      sandboxViewport.classList.remove('hidden');
+      sandboxViewport.srcdoc = '';
+
+      if (proxyMode) {
+        loadViaProxy(destinationUrl);
+      } else {
+        sandboxViewport.src = destinationUrl;
+        securityIcon.className = destinationUrl.startsWith('https://') ? "fa-solid fa-shield-halved text-cyan-500 text-[10px]" : "fa-solid fa-triangle-exclamation text-amber-500 text-[10px]";
+        sandboxRuntimeDesc.textContent = `Running Native: [${destinationUrl.substring(0, 30)}...]`;
+
+        setTimeout(() => {
+          if (sandboxViewport.src === destinationUrl && !sandboxViewport.contentWindow?.location?.href) {
+            logFrameConsole("iframe_blocked", `${destinationUrl} rejected embedding. Switching to Proxy mode...`);
+            triggerToastBanner("X-Frame-Options blocked. Switching to Proxy.", "exclamation text-amber-500");
+            if (!proxyMode) proxyToggleBtn.click();
+            else loadViaProxy(destinationUrl);
+          }
+        }, 3000);
+      }
+
+      refreshNavigationActionStates();
+      syncDirectoryPinIndicator(destinationUrl);
+    }
+
+    // ==========================================================
+    // 3. FRAME MESSAGE INTERCEPTOR — real relay, not mock
+    // ==========================================================
+    window.addEventListener('message', (event) => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if (data.__neon_frame_log) {
+        logFrameConsole(data.method || 'log', (data.args || []).join(' '));
+      }
+    });
+
+    // ==========================================================
+    // 4. CORE APP (Frame Console, Registry, Nav)
+    // ==========================================================
+    function logFrameConsole(eventLabel, descriptionString) {
+      if (frameConsoleLogs.querySelector('div.italic')) frameConsoleLogs.innerHTML = '';
+      const recordLogNode = document.createElement('div');
+      recordLogNode.className = "py-1.5 border-b border-white/5 space-y-0.5 last:border-none";
+      const l = String(eventLabel).toLowerCase();
+      let structuralLabelColor = "text-cyan-500";
+      if (l.includes('error') || l.includes('blocked') || l.includes('failed')) structuralLabelColor = "text-rose-500";
+      else if (l.includes('warn')) structuralLabelColor = "text-yellow-500";
+      else if (l.includes('success') || l === 'init') structuralLabelColor = "text-emerald-500 font-bold";
+      recordLogNode.innerHTML = `<div class="flex items-center justify-between"><span class="${structuralLabelColor} text-[9px] uppercase font-bold">[${eventLabel}]</span><span class="text-slate-600 text-[8px] font-mono">${new Date().toLocaleTimeString()}</span></div><div class="text-slate-400 break-all leading-tight text-[10px] font-mono">${descriptionString}</div>`;
+      frameConsoleLogs.insertBefore(recordLogNode, frameConsoleLogs.firstChild);
+      browserLogCounter++;
+      browserLogCountEl.textContent = browserLogCounter;
+    }
+
+    function toggleBrowserConsole() {
+      const panel = document.getElementById('browser-console-panel');
+      const content = document.getElementById('browser-console-content');
+      const icon = document.getElementById('browser-console-toggle-icon');
+      const isOpen = !content.classList.contains('hidden');
+      content.classList.toggle('hidden', isOpen);
+      panel.classList.toggle('h-8', isOpen); panel.classList.toggle('sm:h-9', isOpen);
+      panel.classList.toggle('h-auto', !isOpen); panel.classList.toggle('sm:h-auto', !isOpen);
+      icon.style.transform = isOpen ? 'rotate(180deg)' : 'rotate(0deg)';
+    }
+
+    function clearBrowserConsole() {
+      frameConsoleLogs.innerHTML = `<div class="text-slate-600 italic select-none">Console cleared...</div>`;
+      browserLogCounter = 0;
+      browserLogCountEl.textContent = '0';
+    }
+
+    function parseHistoryBackward() { if (historyRecords.length > 0) { forwardRecords.push(sandboxViewport.src); dispatchSandboxFrame(historyRecords.pop(), true); } }
+    function parseHistoryForward() { if (forwardRecords.length > 0) { historyRecords.push(sandboxViewport.src); dispatchSandboxFrame(forwardRecords.pop(), true); } }
+    function reloadActiveModule() { if (sandboxViewport.src && sandboxViewport.src !== 'about:blank') { const preserved = sandboxViewport.src; sandboxViewport.src = 'about:blank'; setTimeout(() => { dispatchSandboxFrame(preserved); }, 50); } }
+    function revertToLandingHud() { sandboxViewport.src = 'about:blank'; sandboxViewport.classList.add('hidden'); urlBar.value = ''; landingUrlInput.value = ''; landingHud.classList.remove('hidden', 'pointer-events-none', 'opacity-0'); sandboxRuntimeDesc.textContent = "Environment: Standby Mode"; refreshNavigationActionStates(); }
+    function refreshNavigationActionStates() { backBtn.disabled = historyRecords.length === 0; forwardBtn.disabled = forwardRecords.length === 0; }
+
+    function syncDirectoryPinIndicator(targetPathUrl) { bookmarkBtn.innerHTML = directoryMappings.some(m => m.url === targetPathUrl) ? `<i class="fa-solid fa-bookmark text-xs text-yellow-400"></i>` : `<i class="fa-regular fa-bookmark text-xs"></i>`; }
+    function evaluateDirectoryPinning() { const currentRoute = sandboxViewport.src; if (!currentRoute || currentRoute === 'about:blank') return; const idx = directoryMappings.findIndex(m => m.url === currentRoute); idx === -1 ? directoryMappings.push({ name: urlBar.value.replace(/^https?:\/\/(www\.)?/, ''), url: currentRoute }) : directoryMappings.splice(idx, 1); localStorage.setItem('neon_nexus_directory', JSON.stringify(directoryMappings)); syncDirectoryMappings(); syncDirectoryPinIndicator(currentRoute); }
+    function syncDirectoryMappings() { const target = document.getElementById('bookmarks-container'); if (directoryMappings.length === 0) return target.innerHTML = `<div class="p-3 text-slate-600 italic text-center text-xs select-none">Empty</div>`; target.innerHTML = directoryMappings.map(e => `<div class="flex items-center justify-between p-2 rounded bg-[#0B0E15] hover:bg-[#121622] group transition-all"><button onclick="triggerDirectLoad('${e.url}')" class="flex-1 text-left font-medium text-slate-400 group-hover:text-yellow-400 truncate mr-2 font-mono text-[11px]"><i class="fa-solid fa-link text-cyan-600 mr-1.5 text-[9px]"></i>${e.name}</button><button onclick="popDirectoryEntry('${e.url}')" class="text-slate-600 hover:text-rose-400 opacity-0 group-hover:opacity-100 transition-opacity p-0.5"><i class="fa-solid fa-xmark text-[10px]"></i></button></div>`).join(''); }
+    function popDirectoryEntry(url) { directoryMappings = directoryMappings.filter(m => m.url !== url); localStorage.setItem('neon_nexus_directory', JSON.stringify(directoryMappings)); syncDirectoryMappings(); syncDirectoryPinIndicator(sandboxViewport.src); }
+    function triggerDirectLoad(url) { dispatchSandboxFrame(url); }
+    function triggerToastBanner(text, icon) { const box = document.getElementById('toast-deck'); document.getElementById('toast-deck-icon').className = `fa-solid fa-${icon}`; document.getElementById('toast-deck-text').innerText = text; box.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none'); clearTimeout(window.globalDeckTimerToken); window.globalDeckTimerToken = setTimeout(() => { box.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'); }, 2500); }
+
+    // Bootstrap
+    window.addEventListener('DOMContentLoaded', () => {
+      syncDirectoryMappings();
+      urlBar.addEventListener('keypress', (e) => { if (e.key === 'Enter') executeManifestLoad(urlBar.value); });
+      landingUrlInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') executeManifestLoad(landingUrlInput.value); });
+      mountSandboxBtn.addEventListener('click', () => executeManifestLoad(landingUrlInput.value));
+      backBtn.addEventListener('click', parseHistoryBackward);
+      forwardBtn.addEventListener('click', parseHistoryForward);
+      refreshBtn.addEventListener('click', reloadActiveModule);
+      homeBtn.addEventListener('click', revertToLandingHud);
+      bookmarkBtn.addEventListener('click', evaluateDirectoryPinning);
+      toggleRegistryBtn.addEventListener('click', () => registryPanel.classList.toggle('open'));
+      logFrameConsole("init", "Hybrid proxy browser booted successfully.");
+    });
+  </script>
+
+  <!-- ============================================================ -->
+  <!-- SANDBOX TAB LOGIC                                             -->
+  <!-- ============================================================ -->
   <script>
     // DOM refs
     const editor = document.getElementById('code-editor');
@@ -260,6 +657,10 @@
     let consoleIsOpen = false;
     let logCounter = 0;
 
+    // Search & Replace state
+    let searchMatches = [];
+    let currentMatchIndex = -1;
+
     // Templates
     const defaultTemplate = `<!DOCTYPE html>
 <html>
@@ -269,7 +670,7 @@
 </head>
 <body>
   <div style="padding:20px; font-family:sans-serif;">
-    <h1>Neon Arena</h1>
+    <h1>Stackfolio Arena</h1>
     <p>Edit this code!</p>
   </div>
 </body>
@@ -321,20 +722,18 @@
       showToast('Workspace reset', 'eraser');
     }
 
-    // --- Preview (Enhanced with Deep Error & Console Sensitivity) ---
+    // --- Preview (Deep Error & Console Sensitivity) ---
     function triggerPreviewUpdate() {
       const code = editor.value.trim();
       if (!code) return;
       previewStatus.textContent = 'Rendering...';
       const sandbox = jsToggle.checked ? 'allow-scripts allow-same-origin' : 'allow-same-origin';
       previewFrame.setAttribute('sandbox', sandbox);
-      
-      // Inject a hyper-sensitive error interceptor to catch syntax errors, runtime errors, and override console
+
       let interceptedCode = code;
       const interceptorScript = `
         <!-- interceptor -->
         <script>
-          // Capture Global Runtime Errors & Syntax Errors
           window.onerror = function(message, source, lineno, colno, error) {
               parent.postMessage({ type: 'console', method: 'error', args: ['\u26a0 Syntax/Global Error: ' + message + ' (Line ' + lineno + ')'] }, '*');
               return false;
@@ -343,7 +742,6 @@
               parent.postMessage({ type: 'console', method: 'error', args: ['\u26a0 Unhandled Promise Rejection: ' + e.reason] }, '*');
           });
 
-          // Override console methods to pipe to parent
           const origLog = console.log;
           const origError = console.error;
           const origWarn = console.warn;
@@ -355,7 +753,6 @@
           console.info = function(...args) { origInfo.apply(console, args); parent.postMessage({ type: 'console', method: 'log', args: ['[Info] ' + args.map(a => String(a)).join(' ')] }, '*'); };
         <\/script>
       `;
-      // Inject it safely before closing </body>, or at the end if no body
       if (interceptedCode.includes('</body>')) {
         interceptedCode = interceptedCode.replace('</body>', interceptorScript + '</body>');
       } else {
@@ -367,19 +764,15 @@
         previewFrame.onload = () => {
           try {
             const win = previewFrame.contentWindow;
-            if (win) {
-              // We already overrode console in the script above. 
-              // Don't override it twice, just update status.
-              previewStatus.textContent = 'Live ✓';
-            }
-          } catch(e) { 
-            previewStatus.textContent = 'Rendered (blocked)'; 
+            if (win) previewStatus.textContent = 'Live ✓';
+          } catch (e) {
+            previewStatus.textContent = 'Rendered (blocked)';
           }
         };
       });
     }
 
-    // --- Listen for Error/Console messages from the iframe ---
+    // --- Listen for Error/Console messages from the sandboxed preview iframe ---
     window.addEventListener('message', (e) => {
       if (e.data && e.data.type === 'console') {
         addLog(e.data.method, e.data.args);
@@ -393,7 +786,7 @@
       const tabs = ['editor', 'preview', 'split'];
       tabs.forEach(t => {
         const el = document.getElementById(`view-tab-${t}`);
-        if(el) el.className = "text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white";
+        if (el) el.className = "text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 text-slate-400 hover:text-white";
       });
       document.getElementById(`view-tab-${mode}`).className = "text-[10px] sm:text-xs font-bold py-1.5 px-3 sm:px-4 rounded-lg transition-all flex items-center gap-1 sm:gap-2 bg-yellow-500 text-black shadow-lg shadow-yellow-500/10";
 
@@ -403,7 +796,7 @@
       if (mode === 'preview' || mode === 'split') triggerPreviewUpdate();
     }
 
-    // --- Console (Made more sensitive & clearable) ---
+    // --- Sandbox Console ---
     function addLog(type, args) {
       const div = document.createElement('div');
       div.className = type === 'error' ? 'text-red-400' : type === 'warn' ? 'text-yellow-400' : 'text-green-400';
@@ -431,47 +824,119 @@
       icon.style.transform = consoleIsOpen ? 'rotate(0deg)' : 'rotate(-180deg)';
     }
 
-    // --- Search & Replace (Now with pure "Find" support) ---
-    function openSearch() { document.getElementById('search-panel').classList.toggle('hidden'); }
+    // --- Search & Replace (robust: indexed matches, navigation, single + global) ---
+    function openSearch() { document.getElementById('search-panel').classList.toggle('hidden'); document.getElementById('search-find').focus(); }
     function closeSearch() { document.getElementById('search-panel').classList.add('hidden'); }
-    
-    function findMatches() {
-        const find = document.getElementById('search-find').value;
-        if (!find) return showToast('Enter text to find', 'exclamation');
-        const text = editor.value;
-        const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-        const matches = text.match(regex);
-        if (!matches || matches.length === 0) {
-            showToast('No matches found', 'exclamation');
-            return;
-        }
-        // Highlight first occurrence
-        const index = text.indexOf(find);
-        if (index !== -1) {
-            editor.focus();
-            editor.setSelectionRange(index, index + find.length);
-            editor.scrollTop = editor.scrollTop; // Ensure scroll sync
-        }
-        showToast(`Found ${matches.length} matches`, 'check');
+
+    function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+    function computeMatches() {
+      const find = document.getElementById('search-find').value;
+      const regexMode = document.getElementById('search-regex-toggle').checked;
+      const caseSensitive = document.getElementById('search-case-toggle').checked;
+      searchMatches = [];
+      currentMatchIndex = -1;
+      if (!find) { updateMatchCounter(); return; }
+
+      let re;
+      try {
+        const pattern = regexMode ? find : escapeRegExp(find);
+        const flags = 'g' + (caseSensitive ? '' : 'i');
+        re = new RegExp(pattern, flags);
+      } catch (e) {
+        showToast('Invalid regex: ' + e.message, 'triangle-exclamation');
+        updateMatchCounter();
+        return;
+      }
+
+      const text = editor.value;
+      let m;
+      while ((m = re.exec(text)) !== null) {
+        searchMatches.push({ start: m.index, end: m.index + m[0].length });
+        if (m[0].length === 0) re.lastIndex++;
+      }
+      updateMatchCounter();
+    }
+
+    function onSearchInputChange() { computeMatches(); }
+
+    function updateMatchCounter() {
+      const el = document.getElementById('search-match-counter');
+      el.textContent = searchMatches.length === 0 ? '0/0' : `${currentMatchIndex + 1}/${searchMatches.length}`;
+    }
+
+    function scrollTextareaToSelection() {
+      const pos = editor.selectionStart;
+      const textBefore = editor.value.substring(0, pos);
+      const lineNum = textBefore.split('\n').length;
+      const lineHeight = 20.8; // approx line-height for 13px Fira Code @ 1.6
+      editor.scrollTop = Math.max(0, (lineNum - 5) * lineHeight);
+      syncScroll();
+    }
+
+    function selectMatch(i) {
+      if (i < 0 || i >= searchMatches.length) return;
+      currentMatchIndex = i;
+      const m = searchMatches[i];
+      editor.focus();
+      editor.setSelectionRange(m.start, m.end);
+      scrollTextareaToSelection();
+      updateMatchCounter();
+    }
+
+    function findNext() {
+      if (searchMatches.length === 0) computeMatches();
+      if (searchMatches.length === 0) return showToast('No matches found', 'magnifying-glass');
+      selectMatch((currentMatchIndex + 1) % searchMatches.length);
+    }
+
+    function findPrev() {
+      if (searchMatches.length === 0) computeMatches();
+      if (searchMatches.length === 0) return showToast('No matches found', 'magnifying-glass');
+      selectMatch((currentMatchIndex - 1 + searchMatches.length) % searchMatches.length);
+    }
+
+    function replaceCurrent() {
+      if (currentMatchIndex === -1 || searchMatches.length === 0) {
+        findNext();
+        if (searchMatches.length === 0) return;
+      }
+      const replaceVal = document.getElementById('search-replace').value;
+      const m = searchMatches[currentMatchIndex];
+      const anchor = m.start;
+      editor.value = editor.value.slice(0, m.start) + replaceVal + editor.value.slice(m.end);
+      handleEditorInput();
+      computeMatches();
+      if (searchMatches.length > 0) {
+        let nextIdx = searchMatches.findIndex(mm => mm.start >= anchor);
+        if (nextIdx === -1) nextIdx = 0;
+        selectMatch(nextIdx);
+      }
+      showToast('Replaced 1 match', 'check');
     }
 
     function replaceAll() {
-      const find = document.getElementById('search-find').value;
-      const replace = document.getElementById('search-replace').value;
-      if (!find) return;
-      const regex = new RegExp(find.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
-      editor.value = editor.value.replace(regex, replace);
+      if (searchMatches.length === 0) computeMatches();
+      if (searchMatches.length === 0) return showToast('No matches to replace', 'magnifying-glass');
+      const replaceVal = document.getElementById('search-replace').value;
+      let result = '';
+      let lastEnd = 0;
+      searchMatches.forEach(m => { result += editor.value.slice(lastEnd, m.start) + replaceVal; lastEnd = m.end; });
+      result += editor.value.slice(lastEnd);
+      const count = searchMatches.length;
+      editor.value = result;
       handleEditorInput();
-      showToast(`Replaced all "${find}"`, 'check');
+      computeMatches();
+      showToast(`Replaced ${count} match${count === 1 ? '' : 'es'}`, 'check');
     }
 
     // --- Minify ---
     function minifyCode() {
       let code = editor.value;
-      code = code.replace(/<!--[\s\S]*?-->/g, ''); // Strip comments
-      code = code.replace(/\s*>\s*</g, '><');     // Collapse > <
-      code = code.replace(/\s{2,}/g, ' ');        // Collapse multiple spaces
-      code = code.replace(/\n\s*/g, '');          // Remove newlines
+      code = code.replace(/<!--[\s\S]*?-->/g, '');
+      code = code.replace(/\s*>\s*</g, '><');
+      code = code.replace(/\s{2,}/g, ' ');
+      code = code.replace(/\n\s*/g, '');
       editor.value = code.trim();
       handleEditorInput();
       showToast('Code Minified!', 'compress');
@@ -496,7 +961,7 @@
       e.target.value = '';
     }
 
-    // --- Download (Custom Filename) ---
+    // --- Download ---
     function downloadCode() {
       const name = document.getElementById('filename-input').value.trim() || 'preview';
       const blob = new Blob([editor.value], { type: 'text/html;charset=utf-8' });
@@ -520,22 +985,6 @@
       clearTimeout(window.toastTimer);
       window.toastTimer = setTimeout(() => box.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 2500);
     }
-
-    // Expose to inline buttons
-    window.setWorkspaceView = setWorkspaceView;
-    window.toggleJsExecution = toggleJsExecution;
-    window.clearEditor = clearEditor;
-    window.toggleConsole = toggleConsole;
-    window.openSearch = openSearch;
-    window.closeSearch = closeSearch;
-    window.findMatches = findMatches;
-    window.replaceAll = replaceAll;
-    window.minifyCode = minifyCode;
-    window.injectPreset = injectPreset;
-    window.handleFileUpload = handleFileUpload;
-    window.downloadCode = downloadCode;
-    window.showToast = showToast;
-    window.clearConsole = clearConsole;
 
     // Resize handler
     window.addEventListener('resize', () => {
