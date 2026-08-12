@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Neon Downloader</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#FFD700;
+    --cyan:#00D2FF;
+    --bg:#050816;
+    --bg2:#0a0f24;
+    --glass:rgba(255,255,255,0.04);
+    --border:rgba(255,255,255,0.08);
+    --text:#e8ecf7;
+    --muted:#8891ab;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{
+    font-family:'Plus Jakarta Sans',sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    min-height:100vh;
+    overflow-x:hidden;
+    position:relative;
+  }
+  canvas#nebula{position:fixed;inset:0;z-index:0;opacity:0.55;}
+  .wrap{position:relative;z-index:1;max-width:720px;margin:0 auto;padding:56px 20px 80px;}
+
+  header{text-align:center;margin-bottom:40px;}
+  .logo{
+    display:inline-flex;align-items:center;gap:10px;
+    font-weight:800;font-size:15px;letter-spacing:0.14em;
+    text-transform:uppercase;color:var(--muted);
+  }
+  .logo span{
+    width:6px;height:6px;border-radius:50%;
+    background:linear-gradient(90deg,var(--gold),var(--cyan));
+    box-shadow:0 0 12px var(--cyan);
+  }
+  h1{
+    font-size:clamp(32px,6vw,44px);
+    font-weight:800;
+    margin-top:14px;
+    background:linear-gradient(90deg,var(--gold),var(--cyan));
+    -webkit-background-clip:text;background-clip:text;color:transparent;
+    letter-spacing:-0.02em;
+  }
+  p.sub{color:var(--muted);margin-top:10px;font-size:15px;}
+
+  .card{
+    background:var(--glass);
+    border:1px solid var(--border);
+    border-radius:20px;
+    padding:28px;
+    backdrop-filter:blur(20px);
+    position:relative;
+    overflow:hidden;
+  }
+  .card::before{
+    content:"";position:absolute;inset:0;padding:1px;border-radius:20px;
+    background:linear-gradient(135deg,rgba(255,215,0,0.25),transparent 40%,rgba(0,210,255,0.25));
+    -webkit-mask:linear-gradient(#fff 0 0) content-box,linear-gradient(#fff 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;
+    pointer-events:none;
+  }
+
+  .input-row{display:flex;gap:10px;}
+  input#url{
+    flex:1;
+    background:rgba(0,0,0,0.35);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:15px 16px;
+    color:var(--text);
+    font-size:15px;
+    font-family:inherit;
+    outline:none;
+    transition:border-color .2s;
+  }
+  input#url:focus{border-color:var(--cyan);}
+  input#url::placeholder{color:var(--muted);}
+
+  button#go{
+    background:linear-gradient(90deg,var(--gold),var(--cyan));
+    border:none;
+    border-radius:12px;
+    padding:0 26px;
+    font-weight:700;
+    font-size:15px;
+    color:#050816;
+    cursor:pointer;
+    transition:transform .15s, box-shadow .15s;
+    white-space:nowrap;
+  }
+  button#go:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(0,210,255,0.25);}
+  button#go:active{transform:translateY(0);}
+  button#go:disabled{opacity:0.5;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  .platforms{
+    display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;
+  }
+  .chip{
+    font-size:12px;color:var(--muted);
+    border:1px solid var(--border);
+    padding:5px 11px;border-radius:100px;
+    font-family:'JetBrains Mono',monospace;
+  }
+
+  #status{
+    margin-top:22px;font-size:14px;color:var(--muted);
+    display:none;align-items:center;gap:10px;
+  }
+  #status.show{display:flex;}
+  .spinner{
+    width:15px;height:15px;border-radius:50%;
+    border:2px solid rgba(255,255,255,0.15);
+    border-top-color:var(--cyan);
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  #result{margin-top:24px;display:none;}
+  #result.show{display:block;}
+
+  .media-card{
+    background:var(--glass);border:1px solid var(--border);
+    border-radius:16px;overflow:hidden;margin-bottom:14px;
+  }
+  .media-card video, .media-card img{
+    width:100%;display:block;max-height:420px;object-fit:contain;background:#000;
+  }
+  .media-meta{padding:16px;}
+  .media-title{font-size:14px;font-weight:600;margin-bottom:10px;line-height:1.4;}
+  .dl-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(0,210,255,0.1);
+    border:1px solid rgba(0,210,255,0.3);
+    color:var(--cyan);
+    padding:9px 16px;border-radius:10px;
+    font-size:13px;font-weight:600;
+    text-decoration:none;
+    margin-right:8px;margin-bottom:8px;
+    transition:background .15s;
+  }
+  .dl-btn:hover{background:rgba(0,210,255,0.18);}
+
+  details#raw{
+    margin-top:18px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:rgba(0,0,0,0.3);
+  }
+  details#raw summary{
+    padding:12px 16px;cursor:pointer;font-size:13px;color:var(--muted);
+    font-family:'JetBrains Mono',monospace;
+    user-select:none;
+  }
+  details#raw pre{
+    padding:0 16px 16px;font-size:12px;color:#a8f0ff;
+    font-family:'JetBrains Mono',monospace;
+    white-space:pre-wrap;word-break:break-all;
+    max-height:320px;overflow-y:auto;
+  }
+
+  .error{
+    background:rgba(255,80,80,0.08);
+    border:1px solid rgba(255,80,80,0.3);
+    color:#ff8888;
+    padding:14px 16px;border-radius:12px;
+    font-size:13px;line-height:1.5;
+  }
+
+  footer{text-align:center;margin-top:48px;color:var(--muted);font-size:12px;}
+  footer a{color:var(--cyan);text-decoration:none;}
+
+  @media (max-width:480px){
+    .input-row{flex-direction:column;}
+    button#go{padding:14px;}
+  }
+</style>
+</head>
+<body>
+<canvas id="nebula"></canvas>
+
+<div class="wrap">
+  <header>
+    <div class="logo"><span></span>Neon</div>
+    <h1>Neon Downloader</h1>
+    <p class="sub">Paste a link. Get the media. No sign-up, no key.</p>
+  </header>
+
+  <div class="card">
+    <div class="input-row">
+      <input id="url" type="text" placeholder="https://tiktok.com/@user/video/..." autocomplete="off">
+      <button id="go">Fetch</button>
+    </div>
+    <div class="platforms">
+      <span class="chip">TikTok</span>
+      <span class="chip">Instagram</span>
+      <span class="chip">YouTube</span>
+      <span class="chip">Twitter/X</span>
+      <span class="chip">Facebook</span>
+      <span class="chip">Pinterest</span>
+    </div>
+    <div id="status"><div class="spinner"></div><span id="statusText">Fetching...</span></div>
+  </div>
+
+  <div id="result">
+    <div id="mediaOutput"></div>
+    <details id="raw">
+      <summary>Raw response</summary>
+      <pre id="rawJson"></pre>
+    </details>
+  </div>
+
+  <footer>Powered by <a href="https://prexzyapis.com" target="_blank">Prexzy APIs</a> — free &amp; unlimited, unofficial third-party service.</footer>
+</div>
+
+<script>
+// ---------- Nebula background ----------
+const canvas = document.getElementById('nebula');
+const ctx = canvas.getContext('2d');
+let w, h, particles = [];
+function resize(){ w = canvas.width = innerWidth; h = canvas.height = innerHeight; }
+resize(); addEventListener('resize', resize);
+function initParticles(){
+  particles = [];
+  const count = Math.min(80, Math.floor((w*h)/18000));
+  for(let i=0;i<count;i++){
+    particles.push({
+      x: Math.random()*w, y: Math.random()*h,
+      r: Math.random()*1.6+0.4,
+      vx: (Math.random()-0.5)*0.15,
+      vy: (Math.random()-0.5)*0.15,
+      hue: Math.random() > 0.5 ? '255,215,0' : '0,210,255',
+      a: Math.random()*0.5+0.2
+    });
+  }
+}
+initParticles(); addEventListener('resize', initParticles);
+function animate(){
+  ctx.clearRect(0,0,w,h);
+  const grad = ctx.createRadialGradient(w*0.5,h*0.3,0,w*0.5,h*0.3,Math.max(w,h)*0.6);
+  grad.addColorStop(0,'rgba(0,210,255,0.06)');
+  grad.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle = grad;
+  ctx.fillRect(0,0,w,h);
+  particles.forEach(p=>{
+    p.x += p.vx; p.y += p.vy;
+    if(p.x<0) p.x=w; if(p.x>w) p.x=0;
+    if(p.y<0) p.y=h; if(p.y>h) p.y=0;
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fillStyle = `rgba(${p.hue},${p.a})`;
+    ctx.shadowBlur = 6;
+    ctx.shadowColor = `rgba(${p.hue},0.8)`;
+    ctx.fill();
+  });
+  requestAnimationFrame(animate);
+}
+animate();
+
+// ---------- Downloader logic ----------
+const urlInput = document.getElementById('url');
+const goBtn = document.getElementById('go');
+const statusEl = document.getElementById('status');
+const statusText = document.getElementById('statusText');
+const resultEl = document.getElementById('result');
+const mediaOutput = document.getElementById('mediaOutput');
+const rawJson = document.getElementById('rawJson');
+const rawDetails = document.getElementById('raw');
+
+// NOTE: param name assumed as `url` based on Prexzy's documented convention
+// (see https://prexzyapis.com/ai/chatgpt?q=hello). If the actual aiov2 endpoint
+// uses a different param, check the raw response / docs.prexzyapis.com and
+// update ENDPOINT/paramName below.
+const ENDPOINT = 'https://prexzyapis.com/download/aiov2';
+const PARAM_NAME = 'url';
+
+function setLoading(on){
+  goBtn.disabled = on;
+  statusEl.classList.toggle('show', on);
+  if(on){ statusText.textContent = 'Fetching...'; }
+}
+
+function showError(msg){
+  resultEl.classList.add('show');
+  mediaOutput.innerHTML = `<div class="error">${msg}</div>`;
+  rawDetails.style.display = 'none';
+}
+
+// Classify a URL by its JSON key name first (most downloader APIs return
+// signed CDN links with no file extension), falling back to extension.
+function detectType(url, key){
+  const k = (key || '').toLowerCase();
+  const imageKeys = ['cover','thumb','poster','avatar','image','photo','picture','icon'];
+  const audioKeys = ['music','audio','mp3','song','sound'];
+  const videoKeys = ['video','play','mp4','hd','nowm','watermark','download','dl','src','media','url'];
+
+  if(imageKeys.some(kw => k.includes(kw))) return 'image';
+  if(audioKeys.some(kw => k.includes(kw))) return 'audio';
+  if(videoKeys.some(kw => k.includes(kw))) return 'video';
+
+  if(/\.(mp4|webm|mov|m3u8)(\?|$)/i.test(url)) return 'video';
+  if(/\.(mp3|m4a|wav|aac)(\?|$)/i.test(url)) return 'audio';
+  if(/\.(jpg|jpeg|png|webp|gif)(\?|$)/i.test(url)) return 'image';
+  return 'video'; // ambiguous key in a downloader response is usually the primary media
+}
+
+function scoreFromKey(key){
+  const k = (key || '').toLowerCase();
+  let s = 0;
+  if(k.includes('hd')) s += 3;
+  if(k.includes('nowm') || k.includes('no_watermark') || k.includes('nowatermark')) s += 2;
+  if(k.includes('watermark') && !k.includes('no')) s -= 2;
+  if(k.includes('wm') && !k.includes('nowm')) s -= 1;
+  if(k === 'play' || k === 'url') s += 1;
+  return s;
+}
+
+// Map a raw resolution number onto the 4 requested tiers by nearest match.
+// Real ladders (360/480/720/1080) line up with this exactly; odd values
+// (e.g. 240p, 540p) snap to whichever requested tier is closest rather than
+// being invented from nothing.
+const QUALITY_TIERS = [360, 480, 720, 1080];
+function bucketFromNumber(n){
+  let best = QUALITY_TIERS[0], bestDiff = Infinity;
+  for(const t of QUALITY_TIERS){
+    const diff = Math.abs(n - t);
+    if(diff < bestDiff){ bestDiff = diff; best = t; }
+  }
+  return best >= 1080 ? 'HD' : `${best}p`;
+}
+
+// Only label a candidate with a quality tier when the response actually
+// signals one (explicit resolution digits, or an hd/uhd/4k keyword) — never
+// guess. Callers must skip candidates that come back null rather than
+// inventing a tier for them.
+function detectQuality(key, typeVal, url){
+  const hay = `${key || ''} ${typeVal || ''} ${url || ''}`.toLowerCase();
+  const m = hay.match(/\b(144|240|360|480|540|576|720|1080|1440|2160)p?\b/);
+  if(m) return bucketFromNumber(parseInt(m[1], 10));
+  if(hay.includes('uhd') || hay.includes('4k') || hay.includes('fhd')) return 'HD';
+  if(hay.includes('hd')) return 'HD';
+  return null;
+}
+
+const EXT_TYPE_MAP = {
+  mp4:'video', webm:'video', mov:'video', m3u8:'video',
+  mp3:'audio', m4a:'audio', wav:'audio', aac:'audio',
+  jpg:'image', jpeg:'image', png:'image', webp:'image', gif:'image'
+};
+
+// Walk an arbitrary JSON shape and collect every URL-looking string, scoring
+// each candidate as we go using every signal available in its local context —
+// not just its key name, since APIs like Twitter/X nest resolution variants
+// ({url, type:"720P", default:true}) or explicit type tags ({url, type:"mp4"})
+// under generic keys. Scoring at collection time (rather than guessing later
+// from the key alone) is what lets us reliably pick the real 720P/default
+// video over a 320P duplicate or a stray "url" field that's just the source link.
+function findMediaUrls(obj, found = [], keyHint = ''){
+  if(!obj) return found;
+  if(typeof obj === 'string'){
+    if(/^https?:\/\//i.test(obj)){
+      found.push({ type: detectType(obj, keyHint), url: obj, key: keyHint || 'url', score: scoreFromKey(keyHint), quality: detectQuality(keyHint, '', obj) });
+    }
+    return found;
+  }
+  if(Array.isArray(obj)){
+    obj.forEach(item => findMediaUrls(item, found, keyHint));
+    return found;
+  }
+  if(typeof obj === 'object'){
+    // { url: "...", type: "mp4" | "jpg" | ... } — explicit, high-confidence tag
+    if(typeof obj.url === 'string' && /^https?:\/\//i.test(obj.url) && typeof obj.type === 'string'){
+      const t = obj.type.toLowerCase();
+      if(EXT_TYPE_MAP[t]){
+        let s = scoreFromKey(keyHint) + 5;
+        if(obj.default === true) s += 4;
+        found.push({ type: EXT_TYPE_MAP[t], url: obj.url, key: keyHint || 'url', score: s, quality: detectQuality(keyHint, '', obj.url) });
+      }
+      // { url: "...", type: "720P", default: true } — resolution variant
+      else if(/^\d+p$/i.test(t)){
+        let s = scoreFromKey(keyHint) + 1 + (parseInt(t, 10) || 0) / 1000;
+        if(obj.default === true) s += 4;
+        found.push({ type: 'video', url: obj.url, key: `${keyHint || 'url'}:${t}`, score: s, quality: detectQuality(keyHint, t, obj.url) });
+      }
+    }
+    Object.entries(obj).forEach(([k, v]) => findMediaUrls(v, found, k));
+  }
+  return found;
+}
+
+// Downloader APIs typically return several links per type (watermarked vs
+// clean, HD vs SD, cover vs origin_cover, resolution ladders). Keep only the
+// single highest-scoring candidate per type — this is a video downloader,
+// not a gallery, so we never want to show 3 videos or 3 thumbnails.
+function bestByType(items, type){
+  const candidates = items.filter(i => i.type === type);
+  if(candidates.length === 0) return null;
+  return candidates.slice().sort((a, b) => b.score - a.score)[0];
+}
+
+const QUALITY_ORDER = ['360p', '480p', '720p', 'HD'];
+
+// Group video candidates into the 4 requested tiers, keeping the
+// highest-scoring candidate per tier. Candidates with no detectable quality
+// signal are set aside as a single fallback rather than mislabeled —
+// there's still one video preview either way, just with a plain "Download"
+// button when the source API didn't expose a resolution ladder.
+function groupVideoQualities(items){
+  const videos = items.filter(i => i.type === 'video');
+  const buckets = {};
+  let fallback = null;
+  videos.forEach(i => {
+    if(i.quality && QUALITY_ORDER.includes(i.quality)){
+      if(!buckets[i.quality] || i.score > buckets[i.quality].score) buckets[i.quality] = i;
+    } else if(!fallback || i.score > fallback.score){
+      fallback = i;
+    }
+  });
+  const tiers = QUALITY_ORDER.map(q => buckets[q]).filter(Boolean);
+  return { tiers, fallback };
+}
+
+function renderMedia(data){
+  let items = findMediaUrls(data);
+  // dedupe identical URLs
+  const seen = new Set();
+  items = items.filter(i => seen.has(i.url) ? false : (seen.add(i.url), true));
+
+  const { tiers, fallback } = groupVideoQualities(items);
+  const audio = bestByType(items, 'audio');
+  const image = bestByType(items, 'image');
+
+  if(tiers.length === 0 && !fallback && !audio && !image){
+    mediaOutput.innerHTML = `<div class="error">No media URL detected in the response. Check the raw JSON below — the field name may differ from what this tool expects.</div>`;
+    return;
+  }
+
+  let cardsHtml = '';
+
+  // Single video preview regardless of how many quality tiers were found.
+  if(tiers.length > 0 || fallback){
+    const previewSrc = tiers.length > 0 ? tiers[tiers.length - 1].url : fallback.url;
+    const buttonsHtml = tiers.length > 0
+      ? tiers.map(t => `<a class="dl-btn" href="${t.url}" target="_blank" download>⬇ ${t.quality}</a>`).join('')
+      : `<a class="dl-btn" href="${fallback.url}" target="_blank" download>⬇ Download</a>`;
+    cardsHtml += `
+      <div class="media-card">
+        <video src="${previewSrc}" controls></video>
+        <div class="media-meta">
+          <div class="media-title">VIDEO</div>
+          ${buttonsHtml}
+        </div>
+      </div>`;
+  }
+
+  if(audio){
+    cardsHtml += `
+      <div class="media-card">
+        <div class="media-meta">
+          <div class="media-title">AUDIO <span style="color:var(--muted);font-weight:400;">(${audio.key})</span></div>
+          <a class="dl-btn" href="${audio.url}" target="_blank" download>⬇ Download</a>
+        </div>
+      </div>`;
+  }
+
+  if(image){
+    cardsHtml += `
+      <div class="media-card">
+        <img src="${image.url}" alt="media">
+        <div class="media-meta">
+          <div class="media-title">IMAGE <span style="color:var(--muted);font-weight:400;">(${image.key})</span></div>
+          <a class="dl-btn" href="${image.url}" target="_blank" download>⬇ Download</a>
+        </div>
+      </div>`;
+  }
+
+  mediaOutput.innerHTML = cardsHtml;
+}
+
+async function fetchMedia(){
+  const link = urlInput.value.trim();
+  if(!link){ urlInput.focus(); return; }
+
+  resultEl.classList.remove('show');
+  rawDetails.style.display = '';
+  setLoading(true);
+
+  try{
+    const apiUrl = `${ENDPOINT}?${PARAM_NAME}=${encodeURIComponent(link)}`;
+    const res = await fetch(apiUrl);
+    if(!res.ok) throw new Error(`Server returned ${res.status}`);
+    const data = await res.json();
+
+    rawJson.textContent = JSON.stringify(data, null, 2);
+    resultEl.classList.add('show');
+    renderMedia(data);
+  }catch(err){
+    showError(`Request failed: ${err.message}. This could mean the endpoint or param name differs from what's assumed — open the docs at <a href="https://docs.prexzyapis.com" target="_blank" style="color:#ff8888;text-decoration:underline;">docs.prexzyapis.com</a> to confirm, or it could be a CORS/upstream issue since this is an unofficial free API.`);
+  }finally{
+    setLoading(false);
+  }
+}
+
+goBtn.addEventListener('click', fetchMedia);
+urlInput.addEventListener('keydown', e => { if(e.key === 'Enter') fetchMedia(); });
+</script>
+</body>
+</html>
